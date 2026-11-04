@@ -11,10 +11,10 @@ It works in Chrome, Edge, Brave, Vivaldi, Helium, and other Chromium-based brows
 
 The extension isn't in any web store yet, so you load it yourself:
 
-1. Get a build. There are no releases yet, so [build it from source](docs/DEVELOPMENT.md#quick-start) (`pnpm install`, then `pnpm build`), or unzip a build someone gave you. Either way you need a folder containing `manifest.json`. For a source build, that's `dist`.
+1. Download `element-screenshotter-<version>.zip` from the [latest release](https://github.com/noahcroghan/element-screenshotter/releases/latest) and unzip it. Or [build it from source](docs/DEVELOPMENT.md#quick-start), which gives you a `dist` folder. Either way you need a folder containing `manifest.json`.
 2. Open your browser's extensions page (`chrome://extensions`, `edge://extensions`, and so on).
 3. Turn on **Developer mode**.
-4. Click **Load unpacked** and pick that folder.
+4. Click **Load unpacked** and pick that folder. Keep the folder where it is: the browser loads the extension from it each time it starts.
 5. Optionally, pin the extension to your toolbar.
 
 To screenshot local files (`file://` pages), open the extension's details and turn on **Allow access to file URLs**.

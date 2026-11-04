@@ -1,6 +1,6 @@
 {
   "name": "element-screenshotter",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Screenshot elements, regions, or whole pages in Chromium browsers. A clone of Firefox Screenshots.",
   "license": "MPL-2.0",
