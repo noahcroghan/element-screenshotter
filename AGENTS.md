@@ -4,11 +4,11 @@ Read this before working in the repository. Human-facing docs are [README.md](RE
 
 ## Ground rules
 
-- **Do not publish anything** (push, create a GitHub repo or release, upload to a store) unless the owner explicitly asks in the current conversation. Local commits are fine.
+- The GitHub repository (`noahcroghan/element-screenshotter`) is **private**. Never change its visibility, and don't publish anywhere else (web stores, package registries) unless the owner explicitly asks. Pushing and releasing follow docs/DEVELOPMENT.md.
 - Use **pnpm**, never npm or yarn.
 - The README must keep saying that the project is AI-generated.
 - Prose should be plain, concise, and human. Avoid filler and marketing words.
-- Make small commits with Conventional Commit messages. Run `pnpm check` before every commit, and `pnpm test:e2e` when behaviour changes. Chain commands with `&&` so a failing check stops the commit.
+- Make small commits with Conventional Commit messages. commitlint enforces them through a husky hook, which works from WSL git too. Run `pnpm check` before every commit, and `pnpm test:e2e` when behaviour changes. Chain commands with `&&` so a failing check stops the commit.
 
 ## Environment (the owner's machine)
 

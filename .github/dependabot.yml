@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
+    # Conventional Commits, so commitlint accepts Dependabot's commits.
+    commit-message:
+      prefix: chore
+      include: scope
     groups:
       dev-tooling:
         dependency-type: development
@@ -16,9 +20,13 @@ updates:
       - dependency-name: typescript
 
   - package-ecosystem: github-actions
-    directory: /
+    # Also covers the composite action in .github/actions/.
+    directories: ['/', '/.github/actions/*']
     schedule:
       interval: weekly
+    commit-message:
+      prefix: ci
+      include: scope
     groups:
       actions:
         patterns: ['*']
