@@ -1,17 +1,21 @@
 # Development
 
-How to build, run, and test the extension, and what to know before changing it. For how it works inside, read [DESIGN.md](DESIGN.md).
+How to build, run, and test the extension, and what to know before changing it. For how it works inside, read [design-notes.md](design-notes.md).
 
 ## Quick start
 
-You need [Node.js](https://nodejs.org/) 22.12 or newer, [pnpm](https://pnpm.io/) 11, and a Chromium-based browser.
+You need [Node.js](https://nodejs.org/) 22.18 or newer and [pnpm](https://pnpm.io/) 11. If you have Node but not pnpm, `corepack enable` sets up the version pinned in `package.json`.
 
 ```sh
+git clone <this repository>
+cd element-screenshotter
 pnpm install
 pnpm build        # writes the unpacked extension to dist/
 ```
 
 Then load it: open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose the `dist` folder.
+
+That's all you need on macOS and Linux. On Windows, native PowerShell works too, but [WSL](https://learn.microsoft.com/windows/wsl/) is the smoother path. Clone into the Linux file system (`~/...`, not `/mnt/c/...`) and use Node and pnpm installed inside WSL. To load the extension in a Windows browser, point **Load unpacked** at `\\wsl$\<distro>\home\<you>\element-screenshotter\dist`.
 
 ## Everyday loop
 
@@ -45,7 +49,8 @@ pnpm test:e2e     # builds, then runs the browser tests
 | `pnpm test`                    | Unit tests (Vitest + happy-dom)                                            |
 | `pnpm test:e2e`                | End-to-end tests in a real browser                                         |
 | `pnpm check`                   | Everything except end-to-end tests                                         |
-| `pnpm lint:commits`            | commitlint on commits not yet on `origin/main`                             |
+
+The scripts in `scripts/` are TypeScript that Node runs directly (type stripping, Node 22.18+). They can only use syntax that strips cleanly, which `erasableSyntaxOnly` in `tsconfig.json` enforces.
 
 ## Project layout
 
@@ -61,7 +66,7 @@ src/
   options/        settings page
   shared/         pure helpers used everywhere (geometry, filenames, settings, messages)
 static/           manifest.json, icons, _locales (copied into dist/ as is)
-scripts/          build, zip, icon rendering, browser lookup
+scripts/          build, zip, icon rendering, test-browser lookup, release notes
 test/unit/        fast tests for pure logic
 test/e2e/         browser tests and fixture pages
 docs/             design notes and this guide
@@ -71,27 +76,29 @@ docs/             design notes and this guide
 
 ### Unit tests
 
-`test/unit/` covers the code that doesn't need a real browser: geometry and tile planning, filenames, settings parsing, byte encoding, and the element-picker rules. happy-dom has no layout, so picker tests give elements fake boxes through a `data-box` attribute.
+`test/unit/` covers the code that doesn't need a real browser: geometry and tile planning, filenames, settings parsing, byte encoding, release notes, and the element-picker rules. happy-dom has no layout, so picker tests give elements fake boxes through a `data-box` attribute.
 
 ### End-to-end tests
 
 `test/e2e/` launches a real browser with the built extension through [puppeteer-core](https://pptr.dev/guides/chrome-extensions). It serves the pages in `test/e2e/fixtures/` and drives the extension the way a person would. The toolbar button is clicked with `page.triggerExtensionAction`, which grants `activeTab` for real. The tests then check the pixels of the downloaded or copied PNGs.
 
+The first run downloads [Chrome for Testing](https://developer.chrome.com/blog/chrome-for-testing) (about 150 MB) into `node_modules/.cache/`, so you don't need a browser installed. On a minimal Linux system, the browser may be missing shared libraries. `sudo pnpm dlx @puppeteer/browsers install chrome@stable --install-deps` installs them.
+
 The fixtures use solid colours at known coordinates, so a test can say "the pixel at the bottom of the stitched image is magenta". Adding `/strict/` to a fixture path serves it with a strict Content Security Policy and Trusted Types enforced.
 
 Environment variables:
 
-| Variable       | Effect                                                                                                                                          |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BROWSER_PATH` | Browser executable to use. Otherwise it looks for Helium, then Chromium, then Chrome ([scripts/browser-path.mjs](../scripts/browser-path.mjs)). |
-| `HEADFUL=1`    | Show the browser window. Handy for watching a failing test.                                                                                     |
-| `DPR=1.25`     | Force a device scale factor. CI runs at 1, 1.25, and 2 because fractional scales catch stitching bugs.                                          |
+| Variable       | Effect                                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------------------- |
+| `BROWSER_PATH` | Test in a specific Chromium-based browser instead of Chrome for Testing.                                 |
+| `HEADFUL=1`    | Show the browser window. Handy for watching a failing test.                                              |
+| `DPR=1.25`     | Force a device scale factor. CI also runs at 1.25 and 2, because fractional scales catch stitching bugs. |
 
-To run one file or test: `pnpm exec vitest run --project e2e test/e2e/capture.test.ts -t "full page"`. Run `pnpm build` first, because only `test:e2e` builds for you.
+To run one file or test: `pnpm exec vitest run --project e2e test/e2e/capture.test.ts -t "full page"`. Run `pnpm build` first, because only `test:e2e` builds for you. When a test fails, a screenshot of its page goes to `test-results/`.
 
 The overlay lives in a closed shadow root, so tests can't query it. Instead, the content script exposes a read-only `snapshot()` (state, hovered element, selection) in its isolated world, and `Harness.snapshot()` reads it through puppeteer's extension realm. Pages can't see it.
 
-Google Chrome 137 and newer ignores `--load-extension`. Puppeteer loads the extension over the DevTools protocol instead, which works in Chrome for Testing, Chromium, and Helium.
+Google Chrome 137 and newer ignores `--load-extension`. Puppeteer loads the extension over the DevTools protocol instead, which works in Chrome for Testing, Chromium, and other Chromium-based browsers.
 
 ## Debugging
 
@@ -102,12 +109,17 @@ Google Chrome 137 and newer ignores `--load-extension`. Puppeteer loads the exte
 
 ## Conventions
 
-- TypeScript in strict mode, with type-aware ESLint (`strictTypeChecked`). Don't silence a rule without saying why in a comment.
-- Content-script code must survive hostile pages. Never use `innerHTML`, which breaks under Trusted Types; build DOM with `h()` from `src/content/dom.ts`. Set styles through CSSOM (`el.style.setProperty`), never with `setAttribute('style')`, and keep CSS in the constructable stylesheet. Don't load images from `data:` URLs; draw on a canvas instead.
+- TypeScript everywhere, in strict mode, with type-aware ESLint (`strictTypeChecked`). Don't silence a rule without saying why in a comment.
+- ESLint also enforces the house style:
+  - Names are at least two characters and say what the value is. Property names like `point.x` are exempt.
+  - No `break` or `continue`. Use early returns, conditions, `find`, or `filter`.
+  - Source files are ASCII. Write `\u00d7`, not the character itself. The same goes for Markdown, though only by convention: write "Up Arrow", not an arrow symbol.
+- Content-script code must survive hostile pages. Never use `innerHTML`, which breaks under Trusted Types; build DOM with `buildElement()` from `src/content/dom.ts`. Set styles through CSSOM (`el.style.setProperty`), never with `setAttribute('style')`, and keep CSS in the constructable stylesheet. Don't load images from `data:` URLs; draw on a canvas instead.
 - Keep `src/shared/` free of DOM and `chrome.*` calls where possible, so it can be unit tested.
-- Every UI string goes through `t()` and lives in `static/_locales/en/messages.json`.
+- Every UI string goes through `localize()` and lives in `static/_locales/en/messages.json`.
 - Files adapted from Firefox keep the MPL header and say what they're adapted from.
-- Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `test:`, `docs:`, `ci:`, `chore:`, and so on), checked by [commitlint](https://commitlint.js.org/) with `@commitlint/config-conventional`. `pnpm install` sets up a [husky](https://typicode.github.io/husky/) `commit-msg` hook that rejects a bad message before the commit is made. CI checks every pushed commit too. `pnpm lint:commits` checks everything not yet on `origin/main`.
+- Markdown files are named after their top heading in kebab case: `# Design notes` lives in `design-notes.md`. `README.md` and `AGENTS.md` are the exceptions, because GitHub and coding agents look for those exact names.
+- Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `test:`, `docs:`, `ci:`, `chore:`, and so on), checked by [commitlint](https://commitlint.js.org/) with `@commitlint/config-conventional`. `pnpm install` sets up a [husky](https://typicode.github.io/husky/) `commit-msg` hook that rejects a bad message before the commit is made. CI checks every pushed commit too.
 
 ## Two TypeScript versions, on purpose
 
@@ -120,22 +132,24 @@ Google Chrome 137 and newer ignores `--load-extension`. Puppeteer loads the exte
 
 TypeScript 7 (the Go-based compiler) is what `tsc` runs, so `pnpm typecheck` gets its speed. But 7.0 ships no JavaScript API, and typescript-eslint needs one. So the package named `typescript` is the official 6.0 compatibility package, which is what ESLint loads. This is the [setup the TypeScript team recommends](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6.0). Once typescript-eslint supports TypeScript 7.1's API, replace both with a plain `typescript` dependency. Dependabot is told to leave the alias alone until then.
 
+`@types/node` tracks the oldest supported Node.js (22), not the newest. That way code can't use APIs that would break on older versions, and Dependabot skips its major updates.
+
 ## Continuous integration
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every push to `main` and every pull request:
 
 - **Commit messages.** commitlint over the new commits.
-- **Check.** typecheck, ESLint, markdownlint, Prettier, unit tests, and a packaged build, which is uploaded as an artifact.
-- **End-to-end.** The browser tests in Chrome for Testing at device pixel ratios 1, 1.25, and 2. If a test fails, its page screenshot is uploaded.
+- **Check.** Typecheck, ESLint, markdownlint, Prettier, unit tests, and a packaged build, on Linux, Windows, and macOS.
+- **End-to-end.** The browser tests in Chrome for Testing on Linux, Windows, and macOS. Linux also runs at device pixel ratios 1.25 and 2. If a test fails, its page screenshot is uploaded.
 
-Actions are pinned to commit SHAs. Dependabot updates them and the npm dependencies weekly, using Conventional Commit messages.
+Pull requests run the Linux jobs only, to save runner minutes. Pushes to `main` and releases run on every OS. Actions are pinned to commit SHAs. Dependabot updates them and the npm dependencies weekly, using Conventional Commit messages.
 
 ## Releasing
 
-Releases are built by [`.github/workflows/release.yml`](../.github/workflows/release.yml) when a version tag is pushed. It runs the whole CI pipeline first, then publishes a GitHub release with the zip and a `SHA256SUMS.txt`, using that version's `CHANGELOG.md` section as the notes.
+Releases are built by [`.github/workflows/release.yml`](../.github/workflows/release.yml) when a version tag is pushed. It runs the whole CI pipeline first, then publishes a GitHub release with the zip and a `SHA256SUMS.txt`, using that version's `changelog.md` section as the notes.
 
 1. Bump `version` in `package.json`. The build copies it into the manifest.
-2. Add a `## [x.y.z] - YYYY-MM-DD` section to `CHANGELOG.md`. The release fails without one.
+2. Add a `## [x.y.z] - YYYY-MM-DD` section to `changelog.md`. The release fails without one.
 3. Commit (`chore: release x.y.z`) and push to `main`. Wait for CI to pass.
 4. Tag and push the tag:
 
@@ -144,6 +158,6 @@ Releases are built by [`.github/workflows/release.yml`](../.github/workflows/rel
    git push origin vx.y.z
    ```
 
-The workflow refuses a tag that doesn't match `package.json`. Tags with a hyphen (`v1.1.0-beta.1`) become pre-releases. Once the repository is public, the workflow also attaches build provenance (`gh attestation verify <zip> --repo noahcroghan/element-screenshotter`). GitHub only offers that for public repositories on free plans.
+The workflow refuses a tag that doesn't match `package.json`. Tags with a hyphen (`v1.1.0-beta.1`) become pre-releases.
 
 For a local build to share without releasing, run `pnpm package` and use `artifacts/element-screenshotter-<version>.zip`.

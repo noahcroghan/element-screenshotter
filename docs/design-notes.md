@@ -112,20 +112,19 @@ flash into the screenshot.
   handlers never see clicks on the overlay. Keys are handled by a
   capture-phase listener on `window`, the earliest point an extension can
   reach, so pages can't swallow Escape or fire their own shortcuts.
-- The host's `dir` follows the UI language (`@@bidi_dir`), not the page.
-  `all: initial` does not reset `direction`, so without this a right-to-left
-  page flips the UI.
+- The host sets `dir="ltr"` explicitly. `all: initial` does not reset
+  `direction`, so without it a right-to-left page flips the (English) UI.
 
 ### Element picker
 
 `src/content/element-picker.ts` ports Firefox's `getBestRectForElement`
 heuristic. It starts from the element under the cursor:
 
-- an element smaller than 100×30 is kept as is, unless it is under 30×10, in
+- an element smaller than 100x30 is kept as is, unless it is under 30x10, in
   which case nothing is highlighted
 - headings are skipped in favour of their parent
 - if the element is bigger than the viewport plus 100 px (at least
-  1000×700), the previous, smaller element wins
+  1000x700), the previous, smaller element wins
 - an enclosing `role="article"` that fits is preferred
 
 Firefox can also merge the chosen element with its next sibling. We drop
@@ -147,8 +146,7 @@ On top of that, we add:
 
 ## Decisions and open questions
 
-Most of these were decided up front, and each one can be changed. The last
-two came up during the work.
+Most of these were decided up front, and each one can be changed.
 
 | Topic            | Decision                                                                      | Why / risk                                                                                                                                                                   |
 | ---------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -162,5 +160,5 @@ two came up during the work.
 | Restricted pages | Not supported                                                                 | `chrome://`, the Web Store, other extensions' pages and the PDF viewer can't be scripted. The toolbar badge shows an error.                                                  |
 | Browser support  | Chromium 116+                                                                 | Needs `runtime.getContexts`, popover, and `offscreen`. Tested on Helium (Chromium 156).                                                                                      |
 | Distribution     | GitHub releases (zip), loaded unpacked                                        | No web store listing. The repository is private for now.                                                                                                                     |
-| TypeScript       | `tsc` is TS 7; the `typescript` package is the TS 6 API                       | typescript-eslint can't load TS 7.0, which has no JS API. Remove the alias once typescript-eslint supports TS 7.1. See DEVELOPMENT.md.                                       |
-| CI/CD            | GitHub Actions + Dependabot; tag-triggered releases                           | The e2e job uses headless Chrome for Testing. The repo is private for now, so build provenance is skipped until it goes public.                                              |
+| TypeScript       | `tsc` is TS 7; the `typescript` package is the TS 6 API                       | typescript-eslint can't load TS 7.0, which has no JS API. Remove the alias once typescript-eslint supports TS 7.1. See development.md.                                       |
+| CI/CD            | GitHub Actions + Dependabot; tag-triggered releases                           | Checks and e2e run on Linux, Windows, and macOS (pull requests: Linux only). Tests download Chrome for Testing, so a fresh clone needs no browser.                           |
