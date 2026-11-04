@@ -34,6 +34,8 @@ test('the options page is localised and saves changes', async () => {
   expect(await page.$eval('h1', (heading) => heading.textContent)).toBe(
     'Element Screenshotter settings',
   );
+  // The shortcut is filled in asynchronously.
+  await page.waitForFunction(() => document.querySelector('#shortcut')?.textContent);
   expect(await page.$eval('#shortcut', (shortcut) => shortcut.textContent)).toMatch(/S$/);
 
   await page.click('input[name="elementDetection"][value="exact"]');
