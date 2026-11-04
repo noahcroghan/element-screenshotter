@@ -4,7 +4,7 @@ How to build, run, and test the extension, and what to know before changing it. 
 
 ## Quick start
 
-You need [Node.js](https://nodejs.org/) 22.18 or newer and [pnpm](https://pnpm.io/installation) 11. `corepack enable` also works if your Node.js ships a recent corepack. Some Linux distributions package an old one that can't run pnpm 11; use pnpm's installer there.
+You need [Node.js](https://nodejs.org/) 22.12 or newer and [pnpm](https://pnpm.io/installation) 11. `corepack enable` also works if your Node.js ships a recent corepack. Some Linux distributions package an old one that can't run pnpm 11; use pnpm's installer there.
 
 ```sh
 git clone <this repository>
@@ -50,7 +50,7 @@ pnpm test:e2e     # builds, then runs the browser tests
 | `pnpm test:e2e`                | End-to-end tests in a real browser                                         |
 | `pnpm check`                   | Everything except end-to-end tests                                         |
 
-The scripts in `scripts/` are TypeScript that Node runs directly (type stripping, Node 22.18+). They can only use syntax that strips cleanly, which `erasableSyntaxOnly` in `tsconfig.json` enforces.
+The scripts in `scripts/` are TypeScript, run with [tsx](https://tsx.is/). Node's own type stripping would do, but some Linux distributions build Node.js without it.
 
 ## Project layout
 

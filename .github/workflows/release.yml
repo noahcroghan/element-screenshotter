@@ -40,7 +40,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Release notes from changelog.md
-        run: node scripts/release-notes.ts "${{ steps.version.outputs.version }}" > "$RUNNER_TEMP/notes.md"
+        run: pnpm exec tsx scripts/release-notes.ts "${{ steps.version.outputs.version }}" > "$RUNNER_TEMP/notes.md"
 
       - name: Build the package
         run: |

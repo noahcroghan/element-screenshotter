@@ -1,6 +1,6 @@
 // Prints the changelog.md section for a version, for use as release notes.
 //
-//   node scripts/release-notes.ts 1.0.0
+//   pnpm exec tsx scripts/release-notes.ts 1.0.0
 //
 // Exits non-zero if there is no section for that version, so a release can't
 // go out without notes.

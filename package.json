@@ -7,14 +7,14 @@
   "type": "module",
   "packageManager": "pnpm@11.22.0",
   "engines": {
-    "node": ">=22.18",
+    "node": ">=22.12",
     "pnpm": ">=11"
   },
   "scripts": {
-    "build": "node scripts/build.ts",
-    "watch": "node scripts/build.ts --watch",
-    "package": "node scripts/build.ts --zip",
-    "icons": "node scripts/icons.ts",
+    "build": "tsx scripts/build.ts",
+    "watch": "tsx scripts/build.ts --watch",
+    "package": "tsx scripts/build.ts --zip",
+    "icons": "tsx scripts/icons.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:md": "markdownlint-cli2",
@@ -44,6 +44,7 @@
     "pngjs": "^7.0.0",
     "prettier": "^3.9.10",
     "puppeteer-core": "^25.16.0",
+    "tsx": "^4.23.15",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.72.1",
     "vitest": "^5.1.0"

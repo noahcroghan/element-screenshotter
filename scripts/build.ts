@@ -1,8 +1,8 @@
 // Builds the unpacked extension into dist/.
 //
-//   node scripts/build.ts           one-off build
-//   node scripts/build.ts --watch   rebuild on change
-//   node scripts/build.ts --zip     build and write artifacts/element-screenshotter-<version>.zip
+//   pnpm exec tsx scripts/build.ts           one-off build
+//   pnpm exec tsx scripts/build.ts --watch   rebuild on change
+//   pnpm exec tsx scripts/build.ts --zip     build and write artifacts/element-screenshotter-<version>.zip
 
 import * as esbuild from 'esbuild';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
