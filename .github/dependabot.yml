@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: npm # Also covers pnpm lockfiles.
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      dev-tooling:
+        dependency-type: development
+        update-types: [minor, patch]
+    ignore:
+      # `typescript` is an alias for the TS 6 API package that typescript-eslint
+      # needs (see docs/DEVELOPMENT.md). Update it by hand once typescript-eslint
+      # supports TypeScript 7.1+.
+      - dependency-name: typescript
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']

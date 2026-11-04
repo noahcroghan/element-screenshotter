@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck, lint, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm test
+      - run: pnpm package
+      - uses: actions/upload-artifact@v7
+        with:
+          name: element-screenshotter
+          path: artifacts/*.zip
+          if-no-files-found: error
+
+  e2e:
+    name: End-to-end tests (Chrome for Testing)
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chrome for Testing
+        id: chrome
+        run: |
+          path=$(pnpm dlx @puppeteer/browsers install chrome@stable --path "$RUNNER_TEMP/browsers" --format '{{path}}')
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+      - name: Run end-to-end tests
+        env:
+          BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        # A virtual display lets the browser run headful, which is closest to real use.
+        run: xvfb-run --auto-servernum pnpm test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-artifacts
+          path: test-results/

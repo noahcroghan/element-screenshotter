@@ -1,0 +1,10 @@
+node_modules/
+dist/
+artifacts/
+*.zip
+*.crx
+*.pem
+.e2e-profile/
+test-results/
+.DS_Store
+Thumbs.db

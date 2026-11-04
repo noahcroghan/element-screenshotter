@@ -1,0 +1,43 @@
+{
+  "name": "element-screenshotter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Screenshot elements, regions, or whole pages in Chromium browsers. A clone of Firefox Screenshots.",
+  "license": "MPL-2.0",
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=22.12",
+    "pnpm": ">=11"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "package": "node scripts/build.mjs --zip",
+    "icons": "node scripts/icons.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run --project unit",
+    "test:e2e": "pnpm build && vitest run --project e2e",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/chrome": "^0.3.7",
+    "@types/node": "^24.0.0",
+    "@types/pngjs": "^6.0.5",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "happy-dom": "^21.0.4",
+    "pngjs": "^7.0.0",
+    "prettier": "^3.9.10",
+    "puppeteer-core": "^25.16.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.1.0"
+  }
+}
