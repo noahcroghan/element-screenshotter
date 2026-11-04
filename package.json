@@ -4,6 +4,14 @@
   "private": true,
   "description": "Screenshot elements, regions, or whole pages in Chromium browsers. A clone of Firefox Screenshots.",
   "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noahcroghan/element-screenshotter.git"
+  },
+  "homepage": "https://github.com/noahcroghan/element-screenshotter#readme",
+  "bugs": {
+    "url": "https://github.com/noahcroghan/element-screenshotter/issues"
+  },
   "type": "module",
   "packageManager": "pnpm@11.22.0",
   "engines": {
@@ -22,9 +30,13 @@
     "format:check": "prettier --check .",
     "test": "vitest run --project unit",
     "test:e2e": "pnpm build && vitest run --project e2e",
-    "check": "pnpm typecheck && pnpm lint && pnpm lint:md && pnpm format:check && pnpm test"
+    "check": "pnpm typecheck && pnpm lint && pnpm lint:md && pnpm format:check && pnpm test",
+    "prepare": "husky",
+    "lint:commits": "commitlint --from origin/main --to HEAD --verbose"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
     "@eslint/js": "^10.0.1",
     "@types/chrome": "^0.3.7",
     "@types/node": "^24.0.0",
@@ -34,6 +46,7 @@
     "eslint": "^10.14.0",
     "globals": "^17.14.0",
     "happy-dom": "^21.0.4",
+    "husky": "^9.1.7",
     "markdownlint-cli2": "^0.24.0",
     "pngjs": "^7.0.0",
     "prettier": "^3.9.10",

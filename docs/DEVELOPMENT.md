@@ -45,6 +45,7 @@ pnpm test:e2e     # builds, then runs the browser tests
 | `pnpm test`                    | Unit tests (Vitest + happy-dom)                                            |
 | `pnpm test:e2e`                | End-to-end tests in a real browser                                         |
 | `pnpm check`                   | Everything except end-to-end tests                                         |
+| `pnpm lint:commits`            | commitlint on commits not yet on `origin/main`                             |
 
 ## Project layout
 
@@ -106,7 +107,7 @@ Google Chrome 137 and newer ignores `--load-extension`. Puppeteer loads the exte
 - Keep `src/shared/` free of DOM and `chrome.*` calls where possible, so it can be unit tested.
 - Every UI string goes through `t()` and lives in `static/_locales/en/messages.json`.
 - Files adapted from Firefox keep the MPL header and say what they're adapted from.
-- Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `test:`, `docs:`, `chore:`).
+- Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `test:`, `docs:`, `ci:`, `chore:`, and so on), checked by [commitlint](https://commitlint.js.org/) with `@commitlint/config-conventional`. `pnpm install` sets up a [husky](https://typicode.github.io/husky/) `commit-msg` hook that rejects a bad message before the commit is made. CI checks every pushed commit too. `pnpm lint:commits` checks everything not yet on `origin/main`.
 
 ## Two TypeScript versions, on purpose
 
@@ -119,12 +120,30 @@ Google Chrome 137 and newer ignores `--load-extension`. Puppeteer loads the exte
 
 TypeScript 7 (the Go-based compiler) is what `tsc` runs, so `pnpm typecheck` gets its speed. But 7.0 ships no JavaScript API, and typescript-eslint needs one. So the package named `typescript` is the official 6.0 compatibility package, which is what ESLint loads. This is the [setup the TypeScript team recommends](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6.0). Once typescript-eslint supports TypeScript 7.1's API, replace both with a plain `typescript` dependency. Dependabot is told to leave the alias alone until then.
 
+## Continuous integration
+
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every push to `main` and every pull request:
+
+- **Commit messages.** commitlint over the new commits.
+- **Check.** typecheck, ESLint, markdownlint, Prettier, unit tests, and a packaged build, which is uploaded as an artifact.
+- **End-to-end.** The browser tests in Chrome for Testing at device pixel ratios 1, 1.25, and 2. If a test fails, its page screenshot is uploaded.
+
+Actions are pinned to commit SHAs. Dependabot updates them and the npm dependencies weekly, using Conventional Commit messages.
+
 ## Releasing
 
-Nothing is published automatically. To make a build to share:
+Releases are built by [`.github/workflows/release.yml`](../.github/workflows/release.yml) when a version tag is pushed. It runs the whole CI pipeline first, then publishes a GitHub release with the zip and a `SHA256SUMS.txt`, using that version's `CHANGELOG.md` section as the notes.
 
 1. Bump `version` in `package.json`. The build copies it into the manifest.
-2. Run `pnpm check` and `pnpm test:e2e`.
-3. Run `pnpm package` and share `artifacts/element-screenshotter-<version>.zip`.
+2. Add a `## [x.y.z] - YYYY-MM-DD` section to `CHANGELOG.md`. The release fails without one.
+3. Commit (`chore: release x.y.z`) and push to `main`. Wait for CI to pass.
+4. Tag and push the tag:
 
-CI (`.github/workflows/ci.yml`) runs the same checks on every push and pull request, and uploads the zip as a build artifact.
+   ```sh
+   git tag -a vx.y.z -m "vx.y.z"
+   git push origin vx.y.z
+   ```
+
+The workflow refuses a tag that doesn't match `package.json`. Tags with a hyphen (`v1.1.0-beta.1`) become pre-releases. Once the repository is public, the workflow also attaches build provenance (`gh attestation verify <zip> --repo noahcroghan/element-screenshotter`). GitHub only offers that for public repositories on free plans.
+
+For a local build to share without releasing, run `pnpm package` and use `artifacts/element-screenshotter-<version>.zip`.

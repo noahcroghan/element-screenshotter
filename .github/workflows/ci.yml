@@ -5,41 +5,68 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # The release workflow runs this whole pipeline before publishing.
+  workflow_call:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  commits:
+    name: Commit messages
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Lint commit messages
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            from="$PR_BASE"; to="$PR_HEAD"
+          elif [ -n "$PUSH_BEFORE" ] && ! [[ "$PUSH_BEFORE" =~ ^0+$ ]] && git cat-file -e "$PUSH_BEFORE" 2>/dev/null; then
+            from="$PUSH_BEFORE"; to=HEAD
+          else
+            # First push of a branch: check the whole history.
+            from=$(git rev-list --max-parents=0 HEAD); to=HEAD
+            git log -1 --format=%B "$from" | pnpm exec commitlint --verbose
+          fi
+          pnpm exec commitlint --from "$from" --to "$to" --verbose
+
   check:
     name: Typecheck, lint, unit tests, build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm lint:md
       - run: pnpm format:check
       - run: pnpm test
       - run: pnpm package
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: element-screenshotter
           path: artifacts/*.zip
           if-no-files-found: error
 
   e2e:
-    name: End-to-end tests (Chrome for Testing, DPR ${{ matrix.dpr }})
+    name: End-to-end tests (DPR ${{ matrix.dpr }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: check
     strategy:
       fail-fast: false
@@ -47,17 +74,13 @@ jobs:
         # Fractional scales catch rounding seams when stitching.
         dpr: ['1', '1.25', '2']
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
       - name: Install Chrome for Testing
         id: chrome
         run: |
           path=$(pnpm dlx @puppeteer/browsers install chrome@stable --path "$RUNNER_TEMP/browsers" --format '{{path}}' | tail -n 1)
+          test -x "$path"
           echo "path=$path" >> "$GITHUB_OUTPUT"
       # Ubuntu 24.04 blocks the unprivileged user namespaces Chrome's sandbox needs.
       - name: Allow Chrome's sandbox
@@ -68,7 +91,8 @@ jobs:
           DPR: ${{ matrix.dpr }}
         run: pnpm test:e2e
       - if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: e2e-artifacts-dpr-${{ matrix.dpr }}
+          name: e2e-failures-dpr-${{ matrix.dpr }}
           path: test-results/
+          if-no-files-found: ignore
