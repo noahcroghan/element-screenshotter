@@ -1,6 +1,6 @@
 import type { KeyInput, Page } from 'puppeteer-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
-import { Harness, near, readPng } from './harness';
+import { closePage, Harness, near, readPng } from './harness';
 
 const BLUE: [number, number, number] = [0, 0, 255];
 const MAGENTA: [number, number, number] = [255, 0, 255];
@@ -21,8 +21,8 @@ beforeEach(async () => {
   await h.clearDownloads();
 });
 
-afterEach(async () => {
-  await page.close();
+afterEach(async ({ task }) => {
+  await closePage(page, task);
 });
 
 async function open(path: string) {
