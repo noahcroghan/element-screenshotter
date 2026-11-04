@@ -101,8 +101,11 @@ const handlers: Partial<Record<ToBackground['type'], Handler>> = {
     }
   },
   'prepare-download': () => ensureOffscreen(),
-  'offscreen-download': (msg) => {
+  'offscreen-download': async (msg, sender) => {
     if (msg.type !== 'offscreen-download') throw new Error('bad message');
+    // Only our offscreen document may ask for downloads, and only of its own blobs.
+    if (sender.url !== chrome.runtime.getURL(OFFSCREEN_PATH)) throw new Error('Unexpected sender');
+    if (!msg.url.startsWith(`blob:${self.location.origin}/`)) throw new Error('Unexpected URL');
     return startDownload(msg.url, msg.filename, msg.saveAs);
   },
 };
