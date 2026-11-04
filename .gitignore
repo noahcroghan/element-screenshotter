@@ -1,10 +1,11 @@
-node_modules/
-dist/
-artifacts/
-*.zip
 *.crx
 *.pem
-.e2e-profile/
-test-results/
+*.zip
 .DS_Store
+.e2e-profile/
+.scratch/
 Thumbs.db
+artifacts/
+dist/
+node_modules/
+test-results/

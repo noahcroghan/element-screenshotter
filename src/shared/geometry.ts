@@ -118,6 +118,10 @@ export function roundRect(r: Rect): Rect {
  * with a viewport of `size`, given the scroll range [minScroll, maxScroll].
  * Positions are clamped to the scroll range, so the final tile may overlap
  * the previous one.
+ *
+ * If `current` (the scroll position the user is looking at) already shows
+ * `start`, the first stop is `current`. The part the user saw is then
+ * captured exactly as seen.
  */
 export function scrollStops(
   start: number,
@@ -125,10 +129,11 @@ export function scrollStops(
   size: number,
   minScroll: number,
   maxScroll: number,
+  current?: number,
 ): number[] {
   if (size <= 0) throw new Error('viewport size must be positive');
   const stops: number[] = [];
-  let want = start;
+  let want = current !== undefined && start >= current && start < current + size ? current : start;
   for (;;) {
     const stop = clamp(want, minScroll, maxScroll);
     if (stops.length === 0 || stop !== stops[stops.length - 1]) stops.push(stop);
@@ -148,9 +153,28 @@ export interface ScrollRange {
 }
 
 /** Every scroll position (row-major) needed to cover `region`. */
-export function planTiles(region: Rect, viewport: Size, range: ScrollRange): Point[] {
-  const xs = scrollStops(region.left, region.right, viewport.width, range.minX, range.maxX);
-  const ys = scrollStops(region.top, region.bottom, viewport.height, range.minY, range.maxY);
+export function planTiles(
+  region: Rect,
+  viewport: Size,
+  range: ScrollRange,
+  current?: Point,
+): Point[] {
+  const xs = scrollStops(
+    region.left,
+    region.right,
+    viewport.width,
+    range.minX,
+    range.maxX,
+    current?.x,
+  );
+  const ys = scrollStops(
+    region.top,
+    region.bottom,
+    viewport.height,
+    range.minY,
+    range.maxY,
+    current?.y,
+  );
   const tiles: Point[] = [];
   for (const y of ys) for (const x of xs) tiles.push({ x, y });
   return tiles;

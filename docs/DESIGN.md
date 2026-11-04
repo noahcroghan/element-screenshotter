@@ -120,15 +120,15 @@ On top of that, we add:
 
 These were decided up front. Each one can be changed.
 
-| Topic | Decision | Why / risk |
-| --- | --- | --- |
-| License | MPL-2.0 | The element heuristic, region math, and face SVG are ported from Firefox (MPL-2.0). MPL is file-level copyleft, so the rest could be relicensed, but one license is simpler. |
-| Capture backend | `captureVisibleTab` + stitching | No infobar or scary permission. Costs: about 0.5 s per tile, and `fixed`/`sticky` handling is heuristic. |
-| Permissions | `activeTab`, `scripting`, `downloads`, `offscreen`, `storage`, `contextMenus` | Only `downloads` shows an install warning ("Manage your downloads"). No host permissions. |
-| Default shortcut | `Ctrl+Shift+S` (`Cmd+Shift+S` on macOS) | Same as Firefox. Chrome silently skips it if another extension already uses it. |
-| Clipboard | `navigator.clipboard.write` in the content script | Fails on plain `http://` pages (not a secure context). Download still works there, and the user gets a clear message. |
-| Scope | Top frame only | Same-origin iframes are pierced. Cross-origin iframes can only be captured as a whole rectangle. |
-| Inner scrollers | Not stitched | "Full page" scrolls the window only. Apps that scroll an inner `<div>` capture just the viewport, as in Firefox. |
-| Restricted pages | Not supported | `chrome://`, the Web Store, other extensions' pages and the PDF viewer can't be scripted. The toolbar badge shows an error. |
-| Browser support | Chromium 116+ | Needs `runtime.getContexts`, popover, and `offscreen`. Tested on Helium (Chromium 156). |
-| Distribution | Unpacked only | Nothing is published to a store or remote until the owner says so. |
+| Topic            | Decision                                                                      | Why / risk                                                                                                                                                                   |
+| ---------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| License          | MPL-2.0                                                                       | The element heuristic, region math, and face SVG are ported from Firefox (MPL-2.0). MPL is file-level copyleft, so the rest could be relicensed, but one license is simpler. |
+| Capture backend  | `captureVisibleTab` + stitching                                               | No infobar or scary permission. Costs: about 0.5 s per tile, and `fixed`/`sticky` handling is heuristic.                                                                     |
+| Permissions      | `activeTab`, `scripting`, `downloads`, `offscreen`, `storage`, `contextMenus` | Only `downloads` shows an install warning ("Manage your downloads"). No host permissions.                                                                                    |
+| Default shortcut | `Ctrl+Shift+S` (`Cmd+Shift+S` on macOS)                                       | Same as Firefox. Chrome silently skips it if another extension already uses it.                                                                                              |
+| Clipboard        | `navigator.clipboard.write` in the content script                             | Fails on plain `http://` pages (not a secure context). Download still works there, and the user gets a clear message.                                                        |
+| Scope            | Top frame only                                                                | Same-origin iframes are pierced. Cross-origin iframes can only be captured as a whole rectangle.                                                                             |
+| Inner scrollers  | Not stitched                                                                  | "Full page" scrolls the window only. Apps that scroll an inner `<div>` capture just the viewport, as in Firefox.                                                             |
+| Restricted pages | Not supported                                                                 | `chrome://`, the Web Store, other extensions' pages and the PDF viewer can't be scripted. The toolbar badge shows an error.                                                  |
+| Browser support  | Chromium 116+                                                                 | Needs `runtime.getContexts`, popover, and `offscreen`. Tested on Helium (Chromium 156).                                                                                      |
+| Distribution     | Unpacked only                                                                 | Nothing is published to a store or remote until the owner says so.                                                                                                           |

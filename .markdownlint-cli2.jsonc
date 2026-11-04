@@ -1,0 +1,11 @@
+{
+  "config": {
+    "default": true,
+    // Prose is wrapped by hand or not at all; tables and URLs run long.
+    "MD013": false,
+    // Allow <kbd> for keyboard shortcuts.
+    "MD033": { "allowed_elements": ["kbd", "br", "b", "i"] },
+  },
+  "globs": ["**/*.md"],
+  "ignores": ["node_modules/**", "dist/**", "artifacts/**", "test-results/**"],
+}

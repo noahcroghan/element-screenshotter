@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Element Screenshotter</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <h1 data-i18n="optionsTitle"></h1>
+
+      <form id="form">
+        <fieldset>
+          <legend data-i18n="optElementDetection"></legend>
+          <label class="choice">
+            <input type="radio" name="elementDetection" value="smart" />
+            <span data-i18n="optSmart"></span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="elementDetection" value="exact" />
+            <span data-i18n="optExact"></span>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="optFormat"></legend>
+          <label class="choice">
+            <input type="radio" name="format" value="png" />
+            <span data-i18n="optPng"></span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="format" value="jpeg" />
+            <span data-i18n="optJpeg"></span>
+          </label>
+          <label class="field" id="quality-row">
+            <span data-i18n="optJpegQuality"></span>
+            <input type="range" name="jpegQuality" min="0.5" max="1" step="0.01" />
+            <output id="quality-value"></output>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="optSaving"></legend>
+          <label class="choice">
+            <input type="checkbox" name="saveAs" />
+            <span data-i18n="optSaveAs"></span>
+          </label>
+          <label class="field stacked">
+            <span data-i18n="optFolder"></span>
+            <input type="text" name="folder" maxlength="100" spellcheck="false" />
+            <small data-i18n="optFolderHint"></small>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="optShortcut"></legend>
+          <p id="shortcut"></p>
+          <button type="button" id="shortcuts" data-i18n="optShortcutButton"></button>
+        </fieldset>
+      </form>
+
+      <p id="status" role="status" aria-live="polite"></p>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

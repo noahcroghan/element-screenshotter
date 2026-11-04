@@ -17,11 +17,12 @@
     "icons": "node scripts/icons.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "lint:md": "markdownlint-cli2",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run --project unit",
     "test:e2e": "pnpm build && vitest run --project e2e",
-    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test"
+    "check": "pnpm typecheck && pnpm lint && pnpm lint:md && pnpm format:check && pnpm test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -33,6 +34,7 @@
     "eslint": "^10.14.0",
     "globals": "^17.14.0",
     "happy-dom": "^21.0.4",
+    "markdownlint-cli2": "^0.24.0",
     "pngjs": "^7.0.0",
     "prettier": "^3.9.10",
     "puppeteer-core": "^25.16.0",
