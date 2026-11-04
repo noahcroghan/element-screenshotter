@@ -173,13 +173,18 @@ export class Harness {
   async open(path: string, origin = this.origin): Promise<Page> {
     const page = await this.browser.newPage();
     await gotoWithRetry(page, `${origin}/${path}`, 3);
-    await page.bringToFront();
+    // Keep the test page the only tab, so it is unambiguously the active one
+    // (puppeteer starts with an about:blank tab).
+    for (const other of await this.browser.pages()) {
+      if (other !== page && other.url() === 'about:blank') await other.close();
+    }
+    await activate(page);
     return page;
   }
 
   /** Click the toolbar button, exactly as a user would (grants activeTab). */
   async start(page: Page) {
-    await page.bringToFront();
+    await activate(page);
     await page.triggerExtensionAction(this.extension);
     await this.waitForState(page, 'crosshairs');
   }
@@ -274,6 +279,16 @@ async function launchBrowser(options: Parameters<typeof puppeteer.launch>[0]): P
 /** Close a harness from afterAll, even if launching it failed. */
 export async function closeHarness(harness: Harness | undefined) {
   await harness?.close();
+}
+
+/**
+ * Bring a tab to the front and wait until the browser reports it visible.
+ * On slow machines the switch lags, and an action click on a tab that is
+ * not yet active is not granted activeTab.
+ */
+async function activate(page: Page) {
+  await page.bringToFront();
+  await page.waitForFunction(() => document.visibilityState === 'visible', { timeout: 10_000 });
 }
 
 async function gotoWithRetry(page: Page, url: string, attempts: number): Promise<void> {
