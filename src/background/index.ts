@@ -46,7 +46,11 @@ async function toggle(tab: chrome.tabs.Tab | undefined) {
     await chrome.tabs.sendMessage(tabId, message, { frameId: 0 });
   } catch (error) {
     // chrome://, the Web Store, the PDF viewer and similar pages cannot be scripted.
-    console.warn('[Element Screenshotter] cannot start on this tab:', error);
+    // tab.url is only visible when activeTab was granted.
+    console.warn(
+      `[Element Screenshotter] cannot start on tab ${tabId} (url: ${tab?.url ?? 'hidden'}, status: ${tab?.status ?? 'unknown'}):`,
+      error,
+    );
     await flagBadge(tabId, '!', localize('restrictedPage'));
   }
 }
