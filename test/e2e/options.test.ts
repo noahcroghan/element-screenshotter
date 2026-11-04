@@ -1,6 +1,6 @@
 import { TargetType, type WebWorker } from 'puppeteer-core';
 import { afterAll, beforeAll, expect, test } from 'vitest';
-import { Harness, sleep } from './harness';
+import { closeHarness, Harness, sleep } from './harness';
 
 let harness: Harness;
 let worker: WebWorker;
@@ -18,7 +18,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await harness.close();
+  await closeHarness(harness);
 });
 
 test('the default shortcut is Ctrl+Shift+S (Command+Shift+S on macOS)', async () => {

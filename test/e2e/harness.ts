@@ -123,7 +123,7 @@ export class Harness {
     const server = await startServer();
     const port = (server.address() as AddressInfo).port;
     const origin = `http://127.0.0.1:${port}`;
-    const browser = await puppeteer.launch({
+    const browser = await launchBrowser({
       executablePath: await findBrowser(),
       headless: !process.env.HEADFUL,
       userDataDir: profile,
@@ -253,6 +253,27 @@ export class Harness {
       await rm(join(this.downloads, entry), { force: true, recursive: true });
     }
   }
+}
+
+/** Launch the browser, explaining the usual fix when Linux is missing its libraries. */
+async function launchBrowser(options: Parameters<typeof puppeteer.launch>[0]): Promise<Browser> {
+  try {
+    return await puppeteer.launch(options);
+  } catch (error) {
+    const missingLibraries = String(error).includes('error while loading shared libraries');
+    if (!missingLibraries) throw error;
+    throw new Error(
+      'The test browser is missing system libraries. Install them with:\n' +
+        '  sudo pnpm dlx @puppeteer/browsers install chrome@stable --install-deps\n' +
+        'or set BROWSER_PATH to a Chromium-based browser you already have.',
+      { cause: error },
+    );
+  }
+}
+
+/** Close a harness from afterAll, even if launching it failed. */
+export async function closeHarness(harness: Harness | undefined) {
+  await harness?.close();
 }
 
 async function gotoWithRetry(page: Page, url: string, attempts: number): Promise<void> {

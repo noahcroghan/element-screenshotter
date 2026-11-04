@@ -2,6 +2,7 @@ import { TargetType, type KeyInput, type Page, type WebWorker } from 'puppeteer-
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import {
   ACCEL,
+  closeHarness,
   closePage,
   decodePng,
   Harness,
@@ -40,7 +41,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await harness.close();
+  await closeHarness(harness);
 });
 
 beforeEach(async () => {

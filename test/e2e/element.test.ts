@@ -1,6 +1,6 @@
 import type { Page } from 'puppeteer-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
-import { ACCEL, closePage, Harness, near, readPng, type Rect } from './harness';
+import { ACCEL, closeHarness, closePage, Harness, near, readPng, type Rect } from './harness';
 
 const BLUE: [number, number, number] = [0, 0, 255];
 const RED: [number, number, number] = [255, 0, 0];
@@ -18,7 +18,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await harness.close();
+  await closeHarness(harness);
 });
 
 afterEach(async ({ task }) => {
