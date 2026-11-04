@@ -15,9 +15,12 @@ updates:
         update-types: [minor, patch]
     ignore:
       # `typescript` is an alias for the TS 6 API package that typescript-eslint
-      # needs (see docs/DEVELOPMENT.md). Update it by hand once typescript-eslint
+      # needs (see docs/development.md). Update it by hand once typescript-eslint
       # supports TypeScript 7.1+.
       - dependency-name: typescript
+      # @types/node tracks the oldest supported Node.js (engines.node), not the newest.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     # Also covers the composite action in .github/actions/.

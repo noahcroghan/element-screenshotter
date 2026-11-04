@@ -38,16 +38,21 @@ jobs:
           elif [ -n "$PUSH_BEFORE" ] && ! [[ "$PUSH_BEFORE" =~ ^0+$ ]] && git cat-file -e "$PUSH_BEFORE" 2>/dev/null; then
             from="$PUSH_BEFORE"; to=HEAD
           else
-            # First push of a branch: check the whole history.
+            # First push of a branch or tag: check the whole history.
             from=$(git rev-list --max-parents=0 HEAD); to=HEAD
             git log -1 --format=%B "$from" | pnpm exec commitlint --verbose
           fi
           pnpm exec commitlint --from "$from" --to "$to" --verbose
 
   check:
-    name: Typecheck, lint, unit tests, build
-    runs-on: ubuntu-latest
+    name: Check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # Pull requests run on Linux only, to save runner minutes.
+        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest"]' || '["ubuntu-latest", "windows-latest", "macos-latest"]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
@@ -57,42 +62,33 @@ jobs:
       - run: pnpm format:check
       - run: pnpm test
       - run: pnpm package
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - if: runner.os == 'Linux'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: element-screenshotter
           path: artifacts/*.zip
           if-no-files-found: error
 
   e2e:
-    name: End-to-end tests (DPR ${{ matrix.dpr }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    name: End-to-end (${{ matrix.os }}, DPR ${{ matrix.dpr }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     needs: check
     strategy:
       fail-fast: false
-      matrix:
-        # Fractional scales catch rounding seams when stitching.
-        dpr: ['1', '1.25', '2']
+      # Fractional scales catch rounding seams when stitching, so Linux runs
+      # several. The tests download Chrome for Testing themselves.
+      matrix: ${{ fromJSON(github.event_name == 'pull_request' && '{"include":[{"os":"ubuntu-latest","dpr":"1"},{"os":"ubuntu-latest","dpr":"1.25"},{"os":"ubuntu-latest","dpr":"2"}]}' || '{"include":[{"os":"ubuntu-latest","dpr":"1"},{"os":"ubuntu-latest","dpr":"1.25"},{"os":"ubuntu-latest","dpr":"2"},{"os":"windows-latest","dpr":"1"},{"os":"macos-latest","dpr":"1"}]}') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
-      - name: Install Chrome for Testing
-        id: chrome
-        run: |
-          path=$(pnpm dlx @puppeteer/browsers install chrome@stable --path "$RUNNER_TEMP/browsers" --format '{{path}}' | tail -n 1)
-          test -x "$path"
-          echo "path=$path" >> "$GITHUB_OUTPUT"
-      # Ubuntu 24.04 blocks the unprivileged user namespaces Chrome's sandbox needs.
-      - name: Allow Chrome's sandbox
-        run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
       - name: Run end-to-end tests
         env:
-          BROWSER_PATH: ${{ steps.chrome.outputs.path }}
           DPR: ${{ matrix.dpr }}
         run: pnpm test:e2e
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: e2e-failures-dpr-${{ matrix.dpr }}
+          name: e2e-failures-${{ matrix.os }}-dpr-${{ matrix.dpr }}
           path: test-results/
           if-no-files-found: ignore

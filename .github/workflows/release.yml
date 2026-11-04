@@ -1,7 +1,7 @@
 name: Release
 
 # Push a tag like v1.2.3 to publish a release. The tag must match the version
-# in package.json, and CHANGELOG.md must have a section for it.
+# in package.json, and changelog.md must have a section for it.
 on:
   push:
     tags: ['v[0-9]+.[0-9]+.[0-9]+*']
@@ -25,8 +25,6 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write # create the release
-      id-token: write # build provenance (public repos)
-      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
@@ -41,8 +39,8 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Release notes from CHANGELOG.md
-        run: node scripts/release-notes.mjs "${{ steps.version.outputs.version }}" > "$RUNNER_TEMP/notes.md"
+      - name: Release notes from changelog.md
+        run: node scripts/release-notes.ts "${{ steps.version.outputs.version }}" > "$RUNNER_TEMP/notes.md"
 
       - name: Build the package
         run: |
@@ -50,12 +48,6 @@ jobs:
           cd artifacts
           sha256sum -- *.zip > SHA256SUMS.txt
           cat SHA256SUMS.txt
-
-      # Attestations are free for public repositories only.
-      - if: ${{ !github.event.repository.private }}
-        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
-        with:
-          subject-path: artifacts/*.zip
 
       - name: Publish the GitHub release
         env:
