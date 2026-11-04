@@ -4,7 +4,7 @@ How to build, run, and test the extension, and what to know before changing it. 
 
 ## Quick start
 
-You need [Node.js](https://nodejs.org/) 22.18 or newer and [pnpm](https://pnpm.io/) 11. If you have Node but not pnpm, `corepack enable` sets up the version pinned in `package.json`.
+You need [Node.js](https://nodejs.org/) 22.18 or newer and [pnpm](https://pnpm.io/installation) 11. `corepack enable` also works if your Node.js ships a recent corepack. Some Linux distributions package an old one that can't run pnpm 11; use pnpm's installer there.
 
 ```sh
 git clone <this repository>
