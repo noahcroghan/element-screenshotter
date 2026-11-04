@@ -177,13 +177,15 @@ export class Harness {
     throw new Error(`Timed out waiting for state ${state}; last: ${JSON.stringify(last)}`);
   }
 
-  /** Wait for a new finished download and return its path. */
+  /** Wait for a finished download (searching sub-folders) and return its path. */
   async nextDownload(timeout = 30_000): Promise<string> {
     const end = Date.now() + timeout;
     while (Date.now() < end) {
-      const files = (await readdir(this.downloads)).filter((f) => !/\.(crdownload|tmp)$/.test(f));
-      if (files.length > 0) {
-        const file = join(this.downloads, files[0] ?? '');
+      const files = (await readdir(this.downloads, { recursive: true, withFileTypes: true }))
+        .filter((d) => d.isFile() && !/\.(crdownload|tmp)$/.test(d.name))
+        .map((d) => join(d.parentPath, d.name));
+      const file = files[0];
+      if (file) {
         // Make sure it is fully written.
         const size = (await stat(file)).size;
         await sleep(100);

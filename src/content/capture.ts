@@ -99,8 +99,7 @@ export async function captureRegion(opts: CaptureOptions): Promise<CaptureResult
       const bitmap = await createImageBitmap(dataUrlToBlob(dataUrl));
       try {
         if (!canvas) {
-          // The bitmap covers the whole window, scrollbars included.
-          scale = bitmap.width / window.innerWidth;
+          scale = captureScale(bitmap.width);
           const size = clampOutputSize({
             width: Math.round(width(region) * scale),
             height: Math.round(height(region) * scale),
@@ -130,9 +129,13 @@ export async function captureRegion(opts: CaptureOptions): Promise<CaptureResult
         const dy = toDeviceSpan(part.top, part.bottom, region.top, scale);
         const sx = Math.round((part.left - at.x) * scale);
         const sy = Math.round((part.top - at.y) * scale);
-        const w = Math.min(dx.length, bitmap.width - sx);
-        const h = Math.min(dy.length, bitmap.height - sy);
-        if (w > 0 && h > 0) ctx.drawImage(bitmap, sx, sy, w, h, dx.start, dy.start, w, h);
+        // At fractional scales the bitmap can be a pixel short of the ideal
+        // size. Stretching that last pixel is better than a transparent row.
+        const sw = Math.min(dx.length, bitmap.width - sx);
+        const sh = Math.min(dy.length, bitmap.height - sy);
+        if (sw > 0 && sh > 0) {
+          ctx.drawImage(bitmap, sx, sy, sw, sh, dx.start, dy.start, dx.length, dy.length);
+        }
       } finally {
         bitmap.close();
       }
@@ -144,6 +147,18 @@ export async function captureRegion(opts: CaptureOptions): Promise<CaptureResult
 
   if (!canvas) throw new CaptureError('Nothing was captured', 'empty');
   return { canvas, cropped };
+}
+
+/**
+ * Device pixels per CSS pixel in the captured bitmap. The bitmap covers the
+ * whole window, scrollbars included. `innerWidth` is rounded to whole CSS
+ * pixels, so the measured ratio is slightly off at fractional scales like
+ * 1.25. Trust devicePixelRatio when it agrees with the bitmap.
+ */
+function captureScale(bitmapWidth: number): number {
+  const measured = bitmapWidth / window.innerWidth;
+  const dpr = window.devicePixelRatio || 1;
+  return Math.abs(measured - dpr) < 0.01 ? dpr : measured;
 }
 
 interface SavedStyle {
