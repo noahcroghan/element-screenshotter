@@ -181,15 +181,21 @@ export class Harness {
   async nextDownload(timeout = 30_000): Promise<string> {
     const end = Date.now() + timeout;
     while (Date.now() < end) {
+      // In-progress downloads are *.crdownload on Windows and macOS, and
+      // hidden .org.chromium.Chromium.* files on Linux. Skip both.
       const files = (await readdir(this.downloads, { recursive: true, withFileTypes: true }))
-        .filter((d) => d.isFile() && !/\.(crdownload|tmp)$/.test(d.name))
+        .filter((d) => d.isFile() && !d.name.startsWith('.') && !/\.(crdownload|tmp)$/.test(d.name))
         .map((d) => join(d.parentPath, d.name));
       const file = files[0];
       if (file) {
-        // Make sure it is fully written.
-        const size = (await stat(file)).size;
-        await sleep(100);
-        if ((await stat(file)).size === size && size > 0) return file;
+        try {
+          // Make sure it is fully written.
+          const size = (await stat(file)).size;
+          await sleep(100);
+          if ((await stat(file)).size === size && size > 0) return file;
+        } catch {
+          // Renamed or removed while we looked; try again.
+        }
       }
       await sleep(100);
     }
