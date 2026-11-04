@@ -14,8 +14,7 @@ export type ToBackground =
   | { type: 'capture-visible'; progress?: { done: number; total: number } }
   | { type: 'capture-finished' }
   | { type: 'prepare-download' }
-  | { type: 'offscreen-download'; url: string; filename: string; saveAs: boolean }
-  | { type: 'open-options' };
+  | { type: 'offscreen-download'; url: string; filename: string; saveAs: boolean };
 
 export type Result<T = undefined> =
   | ({ ok: true } & (T extends undefined ? unknown : { value: T }))

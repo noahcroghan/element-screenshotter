@@ -105,7 +105,6 @@ const handlers: Partial<Record<ToBackground['type'], Handler>> = {
     if (msg.type !== 'offscreen-download') throw new Error('bad message');
     return startDownload(msg.url, msg.filename, msg.saveAs);
   },
-  'open-options': () => chrome.runtime.openOptionsPage(),
 };
 
 chrome.runtime.onMessage.addListener((msg: ToBackground, sender, sendResponse) => {
