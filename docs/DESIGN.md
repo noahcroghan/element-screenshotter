@@ -72,11 +72,25 @@ and stitching tiles (`src/content/capture.ts`):
 - Scrolling is instant, and `scroll-snap-type` / `scroll-behavior` are
   overridden for the duration.
 - Tile placement uses the scroll position the browser actually reached, not
-  the one we asked for.
-- `position: fixed` and `sticky` elements are hidden after the first tile, so
-  headers do not repeat. The first tile shows the page as the user saw it.
-- The capture scale is measured from the captured bitmap
-  (`bitmap.width / innerWidth`). It covers both device pixel ratio and zoom.
+  the one we asked for. Right-to-left pages (negative `scrollX`) work.
+- If the region already starts on screen, the first tile is taken at the
+  user's current scroll position. What they saw is captured as they saw it.
+- `position: fixed` and `sticky` elements would repeat on every tile. The
+  rules:
+  - **Full page:** they stay in the first tile (the top of the page) and are
+    hidden after it.
+  - **Element or region:** if the first tile is exactly what the user sees,
+    it is captured as is, and everything fixed is hidden after that.
+    Otherwise, fixed elements outside the selection are hidden from the
+    start, so a header can't cover the top of a scrolled-to element. Sticky
+    parts inside the selected element (a table header, say) stay for the
+    first tile.
+  - Ancestors of the selected element are never hidden, since that would
+    hide the element.
+- The capture scale is `devicePixelRatio` when it agrees with the bitmap.
+  Otherwise it is the measured `bitmap.width / innerWidth`. The measured
+  ratio is slightly wrong at fractional scales like 1.25, because
+  `innerWidth` is rounded to whole pixels. Either way it accounts for zoom.
 - Output is clamped to 32,766 px per side and about 124.9 M px in total,
   matching Firefox, and the user is told when the image is cropped.
 
@@ -94,15 +108,30 @@ flash into the screenshot.
   allows.
 - Images (the preview) are drawn on `<canvas>`, never `<img src=data:>`, so a
   page `img-src` CSP cannot block them.
-- Pointer, mouse, and key events are stopped at the host, so page handlers
-  inside the overlay never see them.
+- Pointer and mouse events are stopped inside the shadow root, so page
+  handlers never see clicks on the overlay. Keys are handled by a
+  capture-phase listener on `window`, the earliest point an extension can
+  reach, so pages can't swallow Escape or fire their own shortcuts.
+- The host's `dir` follows the UI language (`@@bidi_dir`), not the page.
+  `all: initial` does not reset `direction`, so without this a right-to-left
+  page flips the UI.
 
 ### Element picker
 
 `src/content/element-picker.ts` ports Firefox's `getBestRectForElement`
-heuristic. Starting from the element under the cursor, it walks up to the
-first ancestor that is big enough (at least 100×30), skips headings, prefers
-`role="article"` containers, and rejects anything bigger than the viewport.
+heuristic. It starts from the element under the cursor:
+
+- an element smaller than 100×30 is kept as is, unless it is under 30×10, in
+  which case nothing is highlighted
+- headings are skipped in favour of their parent
+- if the element is bigger than the viewport plus 100 px (at least
+  1000×700), the previous, smaller element wins
+- an enclosing `role="article"` that fits is preferred
+
+Firefox can also merge the chosen element with its next sibling. We drop
+that, so the highlight is always a real element, which the tree navigation
+below needs.
+
 On top of that, we add:
 
 - **Element-tree navigation.** Arrow keys go to the parent, child, and
@@ -118,17 +147,20 @@ On top of that, we add:
 
 ## Decisions and open questions
 
-These were decided up front. Each one can be changed.
+Most of these were decided up front, and each one can be changed. The last
+two came up during the work.
 
-| Topic            | Decision                                                                      | Why / risk                                                                                                                                                                   |
-| ---------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| License          | MPL-2.0                                                                       | The element heuristic, region math, and face SVG are ported from Firefox (MPL-2.0). MPL is file-level copyleft, so the rest could be relicensed, but one license is simpler. |
-| Capture backend  | `captureVisibleTab` + stitching                                               | No infobar or scary permission. Costs: about 0.5 s per tile, and `fixed`/`sticky` handling is heuristic.                                                                     |
-| Permissions      | `activeTab`, `scripting`, `downloads`, `offscreen`, `storage`, `contextMenus` | Only `downloads` shows an install warning ("Manage your downloads"). No host permissions.                                                                                    |
-| Default shortcut | `Ctrl+Shift+S` (`Cmd+Shift+S` on macOS)                                       | Same as Firefox. Chrome silently skips it if another extension already uses it.                                                                                              |
-| Clipboard        | `navigator.clipboard.write` in the content script                             | Fails on plain `http://` pages (not a secure context). Download still works there, and the user gets a clear message.                                                        |
-| Scope            | Top frame only                                                                | Same-origin iframes are pierced. Cross-origin iframes can only be captured as a whole rectangle.                                                                             |
-| Inner scrollers  | Not stitched                                                                  | "Full page" scrolls the window only. Apps that scroll an inner `<div>` capture just the viewport, as in Firefox.                                                             |
-| Restricted pages | Not supported                                                                 | `chrome://`, the Web Store, other extensions' pages and the PDF viewer can't be scripted. The toolbar badge shows an error.                                                  |
-| Browser support  | Chromium 116+                                                                 | Needs `runtime.getContexts`, popover, and `offscreen`. Tested on Helium (Chromium 156).                                                                                      |
-| Distribution     | Unpacked only                                                                 | Nothing is published to a store or remote until the owner says so.                                                                                                           |
+| Topic            | Decision                                                                      | Why / risk                                                                                                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| License          | MPL-2.0                                                                       | The element heuristic, region math, and face SVG are ported from Firefox (MPL-2.0). MPL is file-level copyleft, so the rest could be relicensed, but one license is simpler.   |
+| Capture backend  | `captureVisibleTab` + stitching                                               | No infobar or scary permission. Costs: about 0.5 s per tile, and `fixed`/`sticky` handling is heuristic.                                                                       |
+| Permissions      | `activeTab`, `scripting`, `downloads`, `offscreen`, `storage`, `contextMenus` | Only `downloads` shows an install warning ("Manage your downloads"). No host permissions.                                                                                      |
+| Default shortcut | `Ctrl+Shift+S` (`Cmd+Shift+S` on macOS)                                       | Same as Firefox. Chrome silently skips it if another extension already uses it.                                                                                                |
+| Clipboard        | `navigator.clipboard.write` in the content script                             | Fails on plain `http://` pages (not a secure context). Download still works there, and the user gets a clear message.                                                          |
+| Scope            | Top frame only                                                                | Same-origin iframes are pierced. Cross-origin iframes can only be captured as a whole rectangle.                                                                               |
+| Inner scrollers  | Not stitched                                                                  | "Full page" scrolls the window only. Apps that scroll an inner `<div>` capture just the viewport, as in Firefox.                                                               |
+| Restricted pages | Not supported                                                                 | `chrome://`, the Web Store, other extensions' pages and the PDF viewer can't be scripted. The toolbar badge shows an error.                                                    |
+| Browser support  | Chromium 116+                                                                 | Needs `runtime.getContexts`, popover, and `offscreen`. Tested on Helium (Chromium 156).                                                                                        |
+| Distribution     | Unpacked only                                                                 | Nothing is published to a store or remote until the owner says so.                                                                                                             |
+| TypeScript       | `tsc` is TS 7; the `typescript` package is the TS 6 API                       | typescript-eslint can't load TS 7.0, which has no JS API. Remove the alias once typescript-eslint supports TS 7.1. See DEVELOPMENT.md.                                         |
+| CI               | GitHub Actions + Dependabot, not yet run                                      | Written but unverified until the repo is on GitHub. The e2e job uses Chrome for Testing under Xvfb. Dependabot's support for pnpm 11 lockfiles is worth checking on first run. |
