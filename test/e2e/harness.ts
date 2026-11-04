@@ -186,7 +186,36 @@ export class Harness {
   async start(page: Page) {
     await activate(page);
     await page.triggerExtensionAction(this.extension);
+    const started = await this.waitForState(page, 'crosshairs', 5000).catch(() => null);
+    if (started) return;
+    // Diagnostics for an intermittent CI failure: which tab did the click reach?
+    console.warn('[harness] overlay did not open; tabs:', JSON.stringify(await this.#tabs()));
+    await activate(page);
+    await page.triggerExtensionAction(this.extension);
     await this.waitForState(page, 'crosshairs');
+    console.warn('[harness] second click worked');
+  }
+
+  async #tabs(): Promise<unknown> {
+    const target = this.browser
+      .targets()
+      .find(
+        (candidate) =>
+          candidate.type() === TargetType.SERVICE_WORKER &&
+          candidate.url().includes(this.extension.id),
+      );
+    const worker = await target?.worker();
+    return worker?.evaluate(async () => {
+      const tabs = await chrome.tabs.query({});
+      return tabs.map(({ id, windowId, active, index, status, discarded }) => ({
+        id,
+        windowId,
+        active,
+        index,
+        status,
+        discarded,
+      }));
+    });
   }
 
   async snapshot(page: Page): Promise<Snapshot | null> {

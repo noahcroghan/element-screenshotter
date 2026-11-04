@@ -146,6 +146,9 @@ function createOutput(region: Rect, scale: number): Output {
   const canvas = new OffscreenCanvas(size.width, size.height);
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Could not create a canvas this large');
+  // Tiles are copied pixel for pixel. When a tile is stretched by a pixel at
+  // fractional scales, smoothing would blend colours across edges.
+  context.imageSmoothingEnabled = false;
   return { canvas, context, scale, region: outputRegion, cropped: size.cropped };
 }
 
