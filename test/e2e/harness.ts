@@ -14,7 +14,13 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve } from 'node:path';
 import { PNG } from 'pngjs';
-import puppeteer, { type Browser, type Extension, type Page } from 'puppeteer-core';
+import puppeteer, {
+  TargetType,
+  type Browser,
+  type Extension,
+  type Page,
+  type Target,
+} from 'puppeteer-core';
 import { findBrowser } from '../../scripts/browser-path.mjs';
 
 /** The repository root: the nearest ancestor with a package.json. */
@@ -103,6 +109,7 @@ export class Harness {
     }
     if (!extension) throw new Error('The extension did not load');
     await waitForBundledContentBlocker(browser, origin);
+    watchServiceWorkerLogs(browser, extension.id);
     return new Harness(
       browser,
       extension,
@@ -174,7 +181,10 @@ export class Harness {
       if ((last?.state ?? null) === state) return last;
       await sleep(50);
     }
-    throw new Error(`Timed out waiting for state ${state}; last: ${JSON.stringify(last)}`);
+    throw new Error(
+      `Timed out waiting for state ${state}; last: ${JSON.stringify(last)}\n` +
+        `Service worker log:\n${serviceWorkerLog.slice(-20).join('\n') || '(empty)'}`,
+    );
   }
 
   /** Wait for a finished download (searching sub-folders) and return its path. */
@@ -206,6 +216,23 @@ export class Harness {
     for (const f of await readdir(this.downloads))
       await rm(join(this.downloads, f), { force: true });
   }
+}
+
+/** Recent console output from the extension's service worker, for failure messages. */
+const serviceWorkerLog: string[] = [];
+
+/** Follow the service worker's console, including after it restarts. */
+function watchServiceWorkerLogs(browser: Browser, extensionId: string) {
+  const attach = async (target: Target) => {
+    if (target.type() !== TargetType.SERVICE_WORKER || !target.url().includes(extensionId)) return;
+    const worker = await target.worker().catch(() => null);
+    worker?.on('console', (msg) => {
+      serviceWorkerLog.push(`[${new Date().toISOString()}] ${msg.type()}: ${msg.text()}`);
+      if (serviceWorkerLog.length > 200) serviceWorkerLog.shift();
+    });
+  };
+  for (const t of browser.targets()) void attach(t);
+  browser.on('targetcreated', (t: Target) => void attach(t));
 }
 
 /** Helium's built-in uBlock Origin. */

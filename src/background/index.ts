@@ -61,6 +61,7 @@ async function setupMenus() {
 
 async function start(tab: chrome.tabs.Tab | undefined, mode: StartMode, toggle: boolean) {
   const tabId = tab?.id;
+  console.debug('[Element Screenshotter] start', { mode, tabId, url: tab?.url });
   if (tabId === undefined) return;
   try {
     await chrome.scripting.executeScript({ target: { tabId }, files: [CONTENT_SCRIPT] });
