@@ -40,7 +40,8 @@ const entries = [
 ];
 
 async function copyStatic() {
-  await cp(join(root, 'static'), dist, { recursive: true });
+  // icon.svg is the source for the PNGs and doesn't need to ship.
+  await cp(join(root, 'static'), dist, { recursive: true, filter: (src) => !src.endsWith('.svg') });
   for (const file of [
     'src/options/options.html',
     'src/options/options.css',

@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { TargetType, type KeyInput, type Page, type WebWorker } from 'puppeteer-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
-import { decodePng, Harness, near, readClipboardPng, readPng, sleep } from './harness';
+import { closePage, decodePng, Harness, near, readClipboardPng, readPng, sleep } from './harness';
 
 const BLUE: [number, number, number] = [0, 0, 255];
 const CYAN: [number, number, number] = [0, 255, 255];
@@ -41,8 +41,8 @@ beforeEach(async () => {
   );
 });
 
-afterEach(async () => {
-  await page.close();
+afterEach(async ({ task }) => {
+  await closePage(page, task);
 });
 
 async function open(path = 'elements.html', origin?: string) {
