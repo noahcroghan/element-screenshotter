@@ -17,6 +17,7 @@ Human-facing docs come first: [README.md](README.md) for users, [docs/developmen
 - **Hit testing must turn off pointer events on the host element itself**, not just the shadow contents. Otherwise `elementFromPoint` returns our own host.
 - **`all: initial` does not reset `direction`.** The host sets `dir="ltr"`, or right-to-left pages flip the UI.
 - **The capture scale must come from `devicePixelRatio`** when it agrees with the bitmap. `bitmap.width / innerWidth` is off at fractional scales because `innerWidth` is rounded.
+- **The first injection after a toolbar click can be refused** ("Cannot access contents of the page") even though `activeTab` was granted: the renderer learns about the grant a moment later. It showed up as rare CI failures on slow Linux runners. The service worker retries briefly when `tab.url` is visible (proof of the grant).
 - **Chrome limits `captureVisibleTab` to 2 calls per second.** The service worker queues calls. Long pages are slow by design.
 - **Data URLs over about 2 MB fail in `chrome.downloads`,** and messages are JSON-only and capped at 64 MiB. That's why downloads go through the offscreen document in base64 chunks.
 - **Downloads in progress have different names per OS:** `*.crdownload` on Windows and macOS, hidden `.org.chromium.Chromium.*` files on Linux. The harness skips both.

@@ -41,7 +41,7 @@ async function toggle(tab: chrome.tabs.Tab | undefined) {
   const tabId = tab?.id;
   if (tabId === undefined) return;
   try {
-    await chrome.scripting.executeScript({ target: { tabId }, files: [CONTENT_SCRIPT] });
+    await injectContentScript(tabId, tab?.url !== undefined, INJECT_ATTEMPTS);
     const message: ToContent = { type: 'toggle' };
     await chrome.tabs.sendMessage(tabId, message, { frameId: 0 });
   } catch (error) {
@@ -52,6 +52,28 @@ async function toggle(tab: chrome.tabs.Tab | undefined) {
       error,
     );
     await flagBadge(tabId, '!', localize('restrictedPage'));
+  }
+}
+
+/** How often to try injecting before giving up, and how long to wait between tries. */
+const INJECT_ATTEMPTS = 4;
+const INJECT_RETRY_MS = 150;
+
+/**
+ * Inject the content script. Chrome records the activeTab grant in the
+ * browser process first and tells the page's renderer afterwards, so on a
+ * slow machine the first injection can be refused even though the grant
+ * exists (we can tell: tab.url is only visible to us when it does). Retry
+ * briefly in that case only.
+ */
+async function injectContentScript(tabId: number, granted: boolean, attempts: number) {
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, files: [CONTENT_SCRIPT] });
+  } catch (error) {
+    const refused = String(error).includes('Cannot access contents of the page');
+    if (!granted || !refused || attempts <= 1) throw error;
+    await sleep(INJECT_RETRY_MS);
+    await injectContentScript(tabId, granted, attempts - 1);
   }
 }
 
