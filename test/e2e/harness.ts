@@ -179,7 +179,28 @@ export class Harness {
       if (other !== page && other.url() === 'about:blank') await other.close();
     }
     await activate(page);
+    await this.#waitForSingleActiveTab();
     return page;
+  }
+
+  /**
+   * Closing a tab finishes asynchronously inside Chrome, and the toolbar
+   * button acts on whichever tab Chrome considers active. Wait until the
+   * extension itself sees exactly one tab, and that it is active.
+   */
+  async #waitForSingleActiveTab() {
+    const target = await this.browser.waitForTarget(
+      (candidate) =>
+        candidate.type() === TargetType.SERVICE_WORKER &&
+        candidate.url().includes(this.extension.id),
+    );
+    const worker = await target.worker();
+    if (!worker) throw new Error('The extension service worker is not running');
+    const settled = await poll(async () => {
+      const tabs = await worker.evaluate(() => chrome.tabs.query({}));
+      return tabs.length === 1 && tabs[0]?.active ? true : undefined;
+    }, 10_000);
+    if (!settled) throw new Error('The test tab never became the only active tab');
   }
 
   /** Click the toolbar button, exactly as a user would (grants activeTab). */
