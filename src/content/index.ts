@@ -7,7 +7,7 @@
 import type { StartMode, ToContent } from '../shared/messages';
 import { loadSettings } from '../shared/settings';
 import { removeStaleHosts } from './host';
-import { Overlay } from './overlay';
+import { loadLastSaveMethod, Overlay } from './overlay';
 
 interface ContentApi {
   start(mode: StartMode, toggle: boolean): Promise<void>;
@@ -39,10 +39,14 @@ function init(): ContentApi {
     if (starting) return;
     starting = true;
     try {
-      const settings = await loadSettings();
-      overlay = new Overlay(settings, () => {
-        overlay = null;
-      });
+      const [settings, lastSaveMethod] = await Promise.all([loadSettings(), loadLastSaveMethod()]);
+      overlay = new Overlay(
+        settings,
+        () => {
+          overlay = null;
+        },
+        lastSaveMethod,
+      );
       overlay.mount(mode);
     } finally {
       starting = false;

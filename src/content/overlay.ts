@@ -99,8 +99,10 @@ interface Elements {
   highlight: HTMLDivElement;
   size: HTMLSpanElement;
   buttons: HTMLDivElement;
+  copy: HTMLButtonElement;
   download: HTMLButtonElement;
   dialog: HTMLDivElement;
+  dialogCopy: HTMLButtonElement;
   dialogDownload: HTMLButtonElement;
   previewCanvas: HTMLCanvasElement;
 }
@@ -141,6 +143,8 @@ export class Overlay {
   constructor(
     private readonly settings: Settings,
     private readonly onClose: () => void,
+    /** Firefox focuses the action the user picked last time. */
+    private readonly lastSaveMethod: SaveMethod = 'download',
   ) {
     this.host = document.createElement(HOST_TAG);
     styleHost(this.host, { interactive: true });
@@ -278,11 +282,12 @@ export class Overlay {
       primary: true,
       title: t('downloadTitle', `${ACCEL}S`),
     });
+    const copyBtn = btn('copy', 'copy', { icon: 'copy', title: t('copyTitle', `${ACCEL}C`) });
     const buttons = h(
       'div',
       { id: 'buttons', hidden: true },
       btn('cancel', null, { icon: 'close', title: t('cancelTitle'), aria: t('cancel') }),
-      btn('copy', 'copy', { icon: 'copy', title: t('copyTitle', `${ACCEL}C`) }),
+      copyBtn,
       downloadBtn,
     );
 
@@ -290,6 +295,10 @@ export class Overlay {
       icon: 'download',
       primary: true,
       title: t('downloadTitle', `${ACCEL}S`),
+    });
+    const dialogCopy = btn('dialog-copy', 'copy', {
+      icon: 'copy',
+      title: t('copyTitle', `${ACCEL}C`),
     });
     const previewCanvas = h('canvas', { id: 'preview-canvas' });
     const dialog = h(
@@ -306,7 +315,7 @@ export class Overlay {
         { id: 'dialog-bar' },
         btn('dialog-retry', null, { icon: 'retry', title: t('retryTitle'), aria: t('retry') }),
         btn('dialog-cancel', null, { icon: 'close', title: t('cancelTitle'), aria: t('cancel') }),
-        btn('dialog-copy', 'copy', { icon: 'copy', title: t('copyTitle', `${ACCEL}C`) }),
+        dialogCopy,
         dialogDownload,
       ),
       h('div', { id: 'dialog-body' }, previewCanvas),
@@ -339,8 +348,10 @@ export class Overlay {
       highlight,
       size,
       buttons,
+      copy: copyBtn,
       download: downloadBtn,
       dialog,
+      dialogCopy,
       dialogDownload,
       previewCanvas,
     };
@@ -733,10 +744,17 @@ export class Overlay {
         this.#normalizeSelection();
         this.#drawSelection();
         this.#drawButtons();
-        if (!opts.keepFocus) el.download.focus({ preventScroll: true, focusVisible: true });
+        if (!opts.keepFocus) {
+          (this.lastSaveMethod === 'copy' ? el.copy : el.download).focus({
+            preventScroll: true,
+            focusVisible: true,
+          });
+        }
         break;
       case 'preview':
-        el.dialogDownload.focus({ preventScroll: true });
+        (this.lastSaveMethod === 'copy' ? el.dialogCopy : el.dialogDownload).focus({
+          preventScroll: true,
+        });
         break;
       default:
         break;
@@ -1079,6 +1097,7 @@ export class Overlay {
     const written = copyPng(capture.then((r) => r.canvas.convertToBlob({ type: 'image/png' })));
     Promise.all([capture, written]).then(
       ([r]) => {
+        rememberSaveMethod('copy');
         this.destroy();
         showToast(
           r.cropped ? `${t('copied')}. ${t('cropped')}` : t('copied'),
@@ -1140,6 +1159,7 @@ export class Overlay {
     }
     copyPng(r.canvas.convertToBlob({ type: 'image/png' })).then(
       () => {
+        rememberSaveMethod('copy');
         this.destroy();
         showToast(t('copied'), 'info', 2500);
       },
@@ -1169,6 +1189,7 @@ export class Overlay {
     const filename = buildFilename({ title: document.title, date: new Date(), format, folder });
     const outcome = await download(blob, filename, saveAs);
     if (outcome.ok) {
+      rememberSaveMethod('download');
       this.destroy();
       if (r.cropped) showToast(t('cropped'), 'info', 6000);
       return;
@@ -1184,6 +1205,18 @@ export class Overlay {
     this.#setState(back === 'preview' && !this.#previewResult ? 'crosshairs' : back);
     showToast(errorMessage(err, kind), 'error', 6000);
   }
+}
+
+export type SaveMethod = 'copy' | 'download';
+const LAST_SAVE_METHOD_KEY = 'lastSaveMethod';
+
+export async function loadLastSaveMethod(): Promise<SaveMethod> {
+  const { [LAST_SAVE_METHOD_KEY]: value } = await chrome.storage.local.get(LAST_SAVE_METHOD_KEY);
+  return value === 'copy' ? 'copy' : 'download';
+}
+
+function rememberSaveMethod(method: SaveMethod) {
+  void chrome.storage.local.set({ [LAST_SAVE_METHOD_KEY]: method }).catch(() => undefined);
 }
 
 function clipboardAvailable(): boolean {

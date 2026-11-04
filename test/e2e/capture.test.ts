@@ -36,7 +36,9 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await h.clearDownloads();
-  await worker.evaluate(() => chrome.storage.sync.clear());
+  await worker.evaluate(() =>
+    Promise.all([chrome.storage.sync.clear(), chrome.storage.local.clear()]),
+  );
 });
 
 afterEach(async () => {
@@ -87,6 +89,24 @@ describe('copy', () => {
     expect(img.width).toBe(Math.round(120 * dpr));
     expect(img.height).toBe(Math.round(60 * dpr));
     expect(near(img.pixel(img.width / 2, img.height / 2), BLUE)).toBe(true);
+  });
+
+  test('after a copy, Copy becomes the focused action next time (like Firefox)', async () => {
+    await open();
+    await h.start(page);
+    await clickAt(150, 180);
+    await h.waitForState(page, 'selected');
+    await accel('c');
+    await h.waitForState(page, null);
+    await page.evaluate(() => navigator.clipboard.writeText('placeholder'));
+
+    await h.start(page);
+    await clickAt(300, 300); // the card
+    await h.waitForState(page, 'selected');
+    await page.keyboard.press('Enter');
+    await h.waitForState(page, null);
+    const img = decodePng(await readClipboardPng(page));
+    expect(img.width).toBe(Math.round(400 * dpr));
   });
 
   test('on a non-secure page, copy explains why it is unavailable and keeps the selection', async () => {
