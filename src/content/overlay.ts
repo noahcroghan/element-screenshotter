@@ -492,6 +492,9 @@ export class Overlay {
 
     switch (this.#state) {
       case 'crosshairs':
+        // A click can come before any pointermove (e.g. right after the
+        // shortcut). Keep a highlight the user chose with the keyboard.
+        if (!this.#hoverByKeyboard) this.#probe(e.clientX, e.clientY);
         this.#sel = { x1: p.x, y1: p.y, x2: p.x, y2: p.y };
         this.#el.root.setPointerCapture(e.pointerId);
         this.#setState('draggingReady');
@@ -893,8 +896,18 @@ export class Overlay {
     };
   }
 
+  /** Sort the corners, and keep the selection at least 1×1 inside the page. */
   #normalizeSelection() {
     const r = this.#selRect();
+    const b = this.#metrics.bounds;
+    if (r.right - r.left < 1) {
+      r.right = Math.min(r.left + 1, b.right);
+      r.left = r.right - 1;
+    }
+    if (r.bottom - r.top < 1) {
+      r.bottom = Math.min(r.top + 1, b.bottom);
+      r.top = r.bottom - 1;
+    }
     this.#sel = { x1: r.left, y1: r.top, x2: r.right, y2: r.bottom };
   }
 
@@ -1113,11 +1126,17 @@ export class Overlay {
 
   async #downloadSelection() {
     if (this.#state !== 'selected') return;
+    let r: CaptureResult;
     try {
-      const r = await this.#capture(this.#selRect(), this.#selectedEl, 'as-seen');
-      await this.#save(r, 'selected');
+      r = await this.#capture(this.#selRect(), this.#selectedEl, 'as-seen');
     } catch (err) {
       this.#fail(err, 'capture', 'selected');
+      return;
+    }
+    try {
+      await this.#save(r, 'selected');
+    } catch (err) {
+      this.#fail(err, 'download', 'selected');
     }
   }
 

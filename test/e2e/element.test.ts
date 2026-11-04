@@ -87,6 +87,25 @@ describe('smart element detection', () => {
   });
 });
 
+describe('pointer details', () => {
+  test('a click with no prior pointer movement selects what is under the pointer', async () => {
+    await page.mouse.move(150, 180); // before the overlay exists
+    await h.start(page);
+    await page.mouse.down();
+    await page.mouse.up();
+    const snap = await h.waitForState(page, 'selected');
+    expect(snap?.selectedElement).toBe('div#inner');
+  });
+
+  test('the wheel still scrolls the page while picking', async () => {
+    await h.start(page);
+    await hover(600, 400);
+    await page.mouse.wheel({ deltaY: 600 });
+    await page.waitForFunction(() => window.scrollY > 0, { timeout: 5000 });
+    expect((await h.snapshot(page))?.state).toBe('crosshairs');
+  });
+});
+
 describe('keyboard navigation', () => {
   test('arrow keys walk parent, child and siblings', async () => {
     await h.start(page);
