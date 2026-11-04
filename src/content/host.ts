@@ -1,3 +1,5 @@
+import { uiDirection } from '../shared/i18n';
+
 /**
  * Our UI is mounted in a custom element that is promoted to the top layer
  * with the Popover API, so it renders above everything the page does
@@ -14,6 +16,10 @@ export const HOST_TAG = 'element-screenshotter-ui';
  */
 export function styleHost(host: HTMLElement, { interactive }: { interactive: boolean }) {
   host.popover = 'manual';
+  // `all: initial` does not reset direction, so a right-to-left page would
+  // otherwise flip our UI. Follow the UI language instead, as Firefox does.
+  const dir = uiDirection();
+  host.dir = dir;
   const s = host.style;
   const set = (name: string, value: string) => {
     s.setProperty(name, value, 'important');
@@ -37,6 +43,8 @@ export function styleHost(host: HTMLElement, { interactive }: { interactive: boo
   set('clip-path', 'none');
   set('color-scheme', 'normal');
   set('z-index', '2147483647');
+  set('direction', dir);
+  set('unicode-bidi', 'isolate');
   set('pointer-events', interactive ? 'auto' : 'none');
 }
 

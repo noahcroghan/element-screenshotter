@@ -1,0 +1,10 @@
+html,
+body {
+  margin: 0;
+}
+
+/* 40,000 CSS px is more than the 32,766 px canvas limit at any scale. */
+body {
+  height: 40000px;
+  background: linear-gradient(#00ff00, #0000ff);
+}

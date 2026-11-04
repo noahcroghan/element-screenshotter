@@ -1,0 +1,33 @@
+/* A right-to-left page that is wider than the viewport. Chromium scrolls it
+   with negative scrollX values. */
+html,
+body {
+  margin: 0;
+  background: #fff;
+}
+
+body {
+  position: relative;
+  width: 3000px;
+  height: 1500px;
+}
+
+/* Visible on load, at the right edge. */
+#start {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 200px;
+  height: 200px;
+  background: #0000ff;
+}
+
+/* Far off to the left; only reachable by scrolling. */
+#end {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 200px;
+  height: 200px;
+  background: #ff00ff;
+}
