@@ -4,25 +4,17 @@
   "private": true,
   "description": "Screenshot elements, regions, or whole pages in Chromium browsers. A clone of Firefox Screenshots.",
   "license": "MPL-2.0",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/noahcroghan/element-screenshotter.git"
-  },
-  "homepage": "https://github.com/noahcroghan/element-screenshotter#readme",
-  "bugs": {
-    "url": "https://github.com/noahcroghan/element-screenshotter/issues"
-  },
   "type": "module",
   "packageManager": "pnpm@11.22.0",
   "engines": {
-    "node": ">=22.12",
+    "node": ">=22.18",
     "pnpm": ">=11"
   },
   "scripts": {
-    "build": "node scripts/build.mjs",
-    "watch": "node scripts/build.mjs --watch",
-    "package": "node scripts/build.mjs --zip",
-    "icons": "node scripts/icons.mjs",
+    "build": "node scripts/build.ts",
+    "watch": "node scripts/build.ts --watch",
+    "package": "node scripts/build.ts --zip",
+    "icons": "node scripts/icons.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:md": "markdownlint-cli2",
@@ -31,15 +23,16 @@
     "test": "vitest run --project unit",
     "test:e2e": "pnpm build && vitest run --project e2e",
     "check": "pnpm typecheck && pnpm lint && pnpm lint:md && pnpm format:check && pnpm test",
-    "prepare": "husky",
-    "lint:commits": "commitlint --from origin/main --to HEAD --verbose"
+    "prepare": "husky"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
+    "@commitlint/types": "^21.2.3",
     "@eslint/js": "^10.0.1",
+    "@puppeteer/browsers": "^3.2.6",
     "@types/chrome": "^0.3.7",
-    "@types/node": "^24.0.0",
+    "@types/node": "^22.20.5",
     "@types/pngjs": "^6.0.5",
     "@typescript/native": "npm:typescript@^7.0.2",
     "esbuild": "^0.28.2",

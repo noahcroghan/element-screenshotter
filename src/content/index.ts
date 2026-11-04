@@ -4,13 +4,13 @@
  * only the first injection per extension instance sets anything up.
  */
 
-import type { StartMode, ToContent } from '../shared/messages';
+import type { ToContent } from '../shared/messages';
 import { loadSettings } from '../shared/settings';
 import { removeStaleHosts } from './host';
 import { loadLastSaveMethod, Overlay } from './overlay';
 
 interface ContentApi {
-  start(mode: StartMode, toggle: boolean): Promise<void>;
+  toggle(): Promise<void>;
   /** Overlay state for tests; lives in the isolated world, invisible to pages. */
   snapshot(): ReturnType<Overlay['snapshot']> | null;
 }
@@ -19,22 +19,23 @@ declare global {
   var __elementScreenshotter: ContentApi | undefined;
 }
 
-function isStartMessage(msg: unknown): msg is ToContent {
-  return typeof msg === 'object' && msg !== null && (msg as { type?: unknown }).type === 'start';
+function isToggleMessage(message: unknown): message is ToContent {
+  return (
+    typeof message === 'object' &&
+    message !== null &&
+    (message as { type?: unknown }).type === 'toggle'
+  );
 }
 
 function init(): ContentApi {
   let overlay: Overlay | null = null;
   let starting = false;
 
-  async function start(mode: StartMode, toggle: boolean) {
+  /** Open the overlay, or close it if it is already open (as in Firefox). */
+  async function toggle() {
     if (overlay) {
-      // Clicking the toolbar button again closes the overlay, as in Firefox.
-      if (toggle && mode === 'select') {
-        overlay.destroy();
-        return;
-      }
       overlay.destroy();
+      return;
     }
     if (starting) return;
     starting = true;
@@ -47,29 +48,28 @@ function init(): ContentApi {
         },
         lastSaveMethod,
       );
-      overlay.mount(mode);
+      overlay.mount();
     } finally {
       starting = false;
     }
   }
 
-  chrome.runtime.onMessage.addListener((raw: unknown, _sender, sendResponse) => {
-    if (!isStartMessage(raw)) return false;
-    const msg = raw;
-    start(msg.mode, msg.toggle).then(
+  chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+    if (!isToggleMessage(message)) return false;
+    toggle().then(
       () => {
         sendResponse({ ok: true });
       },
-      (err: unknown) => {
-        console.error('[Element Screenshotter]', err);
-        sendResponse({ ok: false, error: String(err) });
+      (error: unknown) => {
+        console.error('[Element Screenshotter]', error);
+        sendResponse({ ok: false, error: String(error) });
       },
     );
     return true;
   });
 
   return {
-    start,
+    toggle,
     snapshot: () => overlay?.snapshot() ?? null,
   };
 }

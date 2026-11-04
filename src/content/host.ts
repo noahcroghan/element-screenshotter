@@ -1,5 +1,3 @@
-import { uiDirection } from '../shared/i18n';
-
 /**
  * Our UI is mounted in a custom element that is promoted to the top layer
  * with the Popover API, so it renders above everything the page does
@@ -16,39 +14,39 @@ export const HOST_TAG = 'element-screenshotter-ui';
  */
 export function styleHost(host: HTMLElement, { interactive }: { interactive: boolean }) {
   host.popover = 'manual';
-  // `all: initial` does not reset direction, so a right-to-left page would
-  // otherwise flip our UI. Follow the UI language instead, as Firefox does.
-  const dir = uiDirection();
-  host.dir = dir;
-  const s = host.style;
-  const set = (name: string, value: string) => {
-    s.setProperty(name, value, 'important');
+  // `all: initial` does not reset direction, so set it explicitly or a
+  // right-to-left page would flip our (English, left-to-right) UI.
+  host.dir = 'ltr';
+  const declarations: Record<string, string> = {
+    display: 'block',
+    position: 'fixed',
+    inset: '0',
+    width: 'auto',
+    height: 'auto',
+    'max-width': 'none',
+    'max-height': 'none',
+    margin: '0',
+    padding: '0',
+    border: '0',
+    background: 'transparent',
+    overflow: 'visible',
+    opacity: '1',
+    visibility: 'visible',
+    transform: 'none',
+    filter: 'none',
+    'clip-path': 'none',
+    'color-scheme': 'normal',
+    'z-index': '2147483647',
+    direction: 'ltr',
+    'unicode-bidi': 'isolate',
+    'pointer-events': interactive ? 'auto' : 'none',
   };
-  set('display', 'block');
-  set('position', 'fixed');
-  set('inset', '0');
-  set('width', 'auto');
-  set('height', 'auto');
-  set('max-width', 'none');
-  set('max-height', 'none');
-  set('margin', '0');
-  set('padding', '0');
-  set('border', '0');
-  set('background', 'transparent');
-  set('overflow', 'visible');
-  set('opacity', '1');
-  set('visibility', 'visible');
-  set('transform', 'none');
-  set('filter', 'none');
-  set('clip-path', 'none');
-  set('color-scheme', 'normal');
-  set('z-index', '2147483647');
-  set('direction', dir);
-  set('unicode-bidi', 'isolate');
-  set('pointer-events', interactive ? 'auto' : 'none');
+  for (const [name, value] of Object.entries(declarations)) {
+    host.style.setProperty(name, value, 'important');
+  }
 }
 
 /** Remove UI left behind by an earlier copy of the content script (e.g. after an update). */
 export function removeStaleHosts() {
-  for (const el of document.querySelectorAll(HOST_TAG)) el.remove();
+  for (const stale of document.querySelectorAll(HOST_TAG)) stale.remove();
 }

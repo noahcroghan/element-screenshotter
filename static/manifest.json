@@ -29,12 +29,6 @@
         "default": "Ctrl+Shift+S",
         "mac": "Command+Shift+S"
       }
-    },
-    "save-visible": {
-      "description": "__MSG_commandVisible__"
-    },
-    "save-fullpage": {
-      "description": "__MSG_commandFullPage__"
     }
   },
   "options_ui": {

@@ -1,18 +1,16 @@
-#!/usr/bin/env node
 // Renders static/icons/icon.svg to the PNG sizes the manifest needs, using
 // the same browser as the end-to-end tests (no image tooling required).
 
 import { readFile, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import puppeteer from 'puppeteer-core';
-import { findBrowser } from './browser-path.mjs';
+import { findBrowser } from './browser-path.ts';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = join(import.meta.dirname, '..');
 const svg = await readFile(join(root, 'static/icons/icon.svg'));
 const src = `data:image/svg+xml;base64,${svg.toString('base64')}`;
 
-const browser = await puppeteer.launch({ executablePath: findBrowser(), headless: true });
+const browser = await puppeteer.launch({ executablePath: await findBrowser(), headless: true });
 try {
   const page = await browser.newPage();
   for (const size of [16, 32, 48, 128]) {

@@ -2,56 +2,46 @@ import { TargetType, type WebWorker } from 'puppeteer-core';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { Harness, sleep } from './harness';
 
-let h: Harness;
+let harness: Harness;
 let worker: WebWorker;
 
 beforeAll(async () => {
-  h = await Harness.launch();
-  const target = await h.browser.waitForTarget(
-    (t) => t.type() === TargetType.SERVICE_WORKER && t.url().includes(h.extension.id),
+  harness = await Harness.launch();
+  const target = await harness.browser.waitForTarget(
+    (candidate) =>
+      candidate.type() === TargetType.SERVICE_WORKER &&
+      candidate.url().includes(harness.extension.id),
   );
-  const w = await target.worker();
-  if (!w) throw new Error('no service worker');
-  worker = w;
+  const found = await target.worker();
+  if (!found) throw new Error('no service worker');
+  worker = found;
 });
 
 afterAll(async () => {
-  await h.close();
+  await harness.close();
 });
 
-test('the default shortcut is Ctrl+Shift+S', async () => {
+test('the default shortcut is Ctrl+Shift+S (Command+Shift+S on macOS)', async () => {
   const commands = await worker.evaluate(() => chrome.commands.getAll());
-  const main = commands.find((c) => c.name === '_execute_action');
-  expect(main?.shortcut).toMatch(/^(Ctrl|⌘)\+Shift\+S$|^⇧⌘S$/);
-  expect(commands.map((c) => c.name).sort()).toEqual([
-    '_execute_action',
-    'save-fullpage',
-    'save-visible',
-  ]);
+  expect(commands.map((command) => command.name)).toEqual(['_execute_action']);
+  // macOS reports the shortcut with symbols: Shift (U+21E7) and Command (U+2318).
+  expect(commands[0]?.shortcut).toMatch(/^Ctrl\+Shift\+S$|^\u21E7\u2318S$/);
 });
 
 test('the options page is localised and saves changes', async () => {
-  const page = await h.browser.newPage();
-  await page.goto(`chrome-extension://${h.extension.id}/options.html`);
-  expect(await page.$eval('h1', (el) => el.textContent)).toBe('Element Screenshotter settings');
-  expect(await page.$eval('#shortcut', (el) => el.textContent)).toMatch(/Shift/);
+  const page = await harness.browser.newPage();
+  await page.goto(`chrome-extension://${harness.extension.id}/options.html`);
+  expect(await page.$eval('h1', (heading) => heading.textContent)).toBe(
+    'Element Screenshotter settings',
+  );
+  expect(await page.$eval('#shortcut', (shortcut) => shortcut.textContent)).toMatch(/S$/);
 
   await page.click('input[name="elementDetection"][value="exact"]');
-  await page.click('input[name="format"][value="jpeg"]');
-  expect(await page.$eval('#quality-row', (el) => (el as HTMLElement).hidden)).toBe(false);
-  await page.type('input[name="folder"]', 'My Shots');
-  await page.click('input[name="saveAs"]'); // blur the text field to fire change
   await sleep(200);
-
   const stored = await worker.evaluate(() => chrome.storage.sync.get(null));
-  expect(stored).toMatchObject({
-    elementDetection: 'exact',
-    format: 'jpeg',
-    folder: 'My Shots',
-    saveAs: true,
-  });
+  expect(stored).toEqual({ elementDetection: 'exact' });
 
   await page.reload();
-  expect(await page.$eval('input[name="folder"]', (el) => el.value)).toBe('My Shots');
+  expect(await page.$eval('input[value="exact"]', (radio) => radio.checked)).toBe(true);
   await page.close();
 });

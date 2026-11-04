@@ -5,7 +5,6 @@
  */
 
 import { blobToBase64Chunks } from '../shared/bytes';
-import type { ImageFormat } from '../shared/filename';
 import {
   TRANSFER_PORT,
   type Result,
@@ -14,31 +13,21 @@ import {
   type TransferReply,
 } from '../shared/messages';
 
-async function send<T>(msg: ToBackground): Promise<Result<T>> {
-  return chrome.runtime.sendMessage<ToBackground, Result<T>>(msg);
+function send<Value>(message: ToBackground): Promise<Result<Value>> {
+  return chrome.runtime.sendMessage<ToBackground, Result<Value>>(message);
 }
 
 /** PNG data URL of the visible viewport, via the service worker. */
 export async function captureViewport(progress?: { done: number; total: number }) {
-  const res = await send<string>(
+  const response = await send<string>(
     progress ? { type: 'capture-visible', progress } : { type: 'capture-visible' },
   );
-  if (!res.ok) throw new Error(res.error);
-  return res.value;
+  if (!response.ok) throw new Error(response.error);
+  return response.value;
 }
 
 export function captureFinished() {
   void send({ type: 'capture-finished' }).catch(() => undefined);
-}
-
-export function encode(
-  canvas: OffscreenCanvas,
-  format: ImageFormat,
-  jpegQuality: number,
-): Promise<Blob> {
-  return format === 'jpeg'
-    ? canvas.convertToBlob({ type: 'image/jpeg', quality: jpegQuality })
-    : canvas.convertToBlob({ type: 'image/png' });
 }
 
 export class ClipboardUnavailableError extends Error {}
@@ -65,18 +54,14 @@ export interface DownloadOutcome {
 }
 
 /** Stream the blob to the offscreen document, which hands it to chrome.downloads. */
-export async function download(
-  blob: Blob,
-  filename: string,
-  saveAs: boolean,
-): Promise<DownloadOutcome> {
-  const prep = await send({ type: 'prepare-download' });
-  if (!prep.ok) return { ok: false, error: prep.error };
+export async function download(blob: Blob, filename: string): Promise<DownloadOutcome> {
+  const prepared = await send({ type: 'prepare-download' });
+  if (!prepared.ok) return { ok: false, error: prepared.error };
 
   const port = chrome.runtime.connect({ name: TRANSFER_PORT });
   const reply = new Promise<TransferReply>((resolve, reject) => {
-    port.onMessage.addListener((msg: TransferReply) => {
-      resolve(msg);
+    port.onMessage.addListener((message: TransferReply) => {
+      resolve(message);
     });
     port.onDisconnect.addListener(() => {
       reject(new Error(chrome.runtime.lastError?.message ?? 'The download channel closed early'));
@@ -84,16 +69,16 @@ export async function download(
   });
   // Avoid an unhandled rejection if posting fails before we await the reply.
   reply.catch(() => undefined);
-  const post = (msg: TransferMessage) => {
-    port.postMessage(msg);
+  const post = (message: TransferMessage) => {
+    port.postMessage(message);
   };
 
   try {
-    post({ type: 'begin', mime: blob.type, filename, saveAs });
+    post({ type: 'begin', mime: blob.type, filename });
     for await (const data of blobToBase64Chunks(blob)) post({ type: 'chunk', data });
     post({ type: 'end' });
-    const res = await reply;
-    return { ok: res.ok, canceled: res.canceled, error: res.error };
+    const response = await reply;
+    return { ok: response.ok, canceled: response.canceled, error: response.error };
   } finally {
     port.disconnect();
   }

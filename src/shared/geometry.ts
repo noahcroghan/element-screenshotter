@@ -21,40 +21,35 @@ export interface Point {
   y: number;
 }
 
-export function width(r: Rect): number {
-  return r.right - r.left;
+export function width(rect: Rect): number {
+  return rect.right - rect.left;
 }
 
-export function height(r: Rect): number {
-  return r.bottom - r.top;
+export function height(rect: Rect): number {
+  return rect.bottom - rect.top;
 }
 
-export function isEmpty(r: Rect): boolean {
-  return width(r) <= 0 || height(r) <= 0;
+export function isEmpty(rect: Rect): boolean {
+  return width(rect) <= 0 || height(rect) <= 0;
 }
 
-/** Build a rect from two arbitrary corners. */
-export function fromPoints(a: Point, b: Point): Rect {
+export function translate(rect: Rect, dx: number, dy: number): Rect {
   return {
-    left: Math.min(a.x, b.x),
-    top: Math.min(a.y, b.y),
-    right: Math.max(a.x, b.x),
-    bottom: Math.max(a.y, b.y),
+    left: rect.left + dx,
+    top: rect.top + dy,
+    right: rect.right + dx,
+    bottom: rect.bottom + dy,
   };
 }
 
-export function translate(r: Rect, dx: number, dy: number): Rect {
-  return { left: r.left + dx, top: r.top + dy, right: r.right + dx, bottom: r.bottom + dy };
-}
-
-export function intersect(a: Rect, b: Rect): Rect | null {
-  const r = {
-    left: Math.max(a.left, b.left),
-    top: Math.max(a.top, b.top),
-    right: Math.min(a.right, b.right),
-    bottom: Math.min(a.bottom, b.bottom),
+export function intersect(first: Rect, second: Rect): Rect | null {
+  const overlap = {
+    left: Math.max(first.left, second.left),
+    top: Math.max(first.top, second.top),
+    right: Math.min(first.right, second.right),
+    bottom: Math.min(first.bottom, second.bottom),
   };
-  return isEmpty(r) ? null : r;
+  return isEmpty(overlap) ? null : overlap;
 }
 
 export function contains(outer: Rect, inner: Rect): boolean {
@@ -66,12 +61,13 @@ export function contains(outer: Rect, inner: Rect): boolean {
   );
 }
 
-export function sameRect(a: Rect, b: Rect, tolerance = 0.5): boolean {
+/** True if every edge of the two rects is within `tolerance` pixels. */
+export function sameRect(first: Rect, second: Rect, tolerance = 0.5): boolean {
   return (
-    Math.abs(a.left - b.left) <= tolerance &&
-    Math.abs(a.top - b.top) <= tolerance &&
-    Math.abs(a.right - b.right) <= tolerance &&
-    Math.abs(a.bottom - b.bottom) <= tolerance
+    Math.abs(first.left - second.left) <= tolerance &&
+    Math.abs(first.top - second.top) <= tolerance &&
+    Math.abs(first.right - second.right) <= tolerance &&
+    Math.abs(first.bottom - second.bottom) <= tolerance
   );
 }
 
@@ -79,37 +75,33 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-/** Clamp every edge of `r` into `bounds`. */
-export function clampRect(r: Rect, bounds: Rect): Rect {
+/** Clamp every edge of `rect` into `bounds`. */
+export function clampRect(rect: Rect, bounds: Rect): Rect {
   return {
-    left: clamp(r.left, bounds.left, bounds.right),
-    top: clamp(r.top, bounds.top, bounds.bottom),
-    right: clamp(r.right, bounds.left, bounds.right),
-    bottom: clamp(r.bottom, bounds.top, bounds.bottom),
+    left: clamp(rect.left, bounds.left, bounds.right),
+    top: clamp(rect.top, bounds.top, bounds.bottom),
+    right: clamp(rect.right, bounds.left, bounds.right),
+    bottom: clamp(rect.bottom, bounds.top, bounds.bottom),
   };
 }
 
 /**
- * Move `r` (without resizing it) so it lies inside `bounds` where possible.
- * If `r` is larger than `bounds` on an axis it is aligned to the start edge.
+ * Move `rect` (without resizing it) so it lies inside `bounds` where possible.
+ * If `rect` is larger than `bounds` on an axis it is aligned to the start edge.
  */
-export function shiftInto(r: Rect, bounds: Rect): Rect {
-  let dx = 0;
-  let dy = 0;
-  if (r.right > bounds.right) dx = bounds.right - r.right;
-  if (r.left + dx < bounds.left) dx = bounds.left - r.left;
-  if (r.bottom > bounds.bottom) dy = bounds.bottom - r.bottom;
-  if (r.top + dy < bounds.top) dy = bounds.top - r.top;
-  return translate(r, dx, dy);
+export function shiftInto(rect: Rect, bounds: Rect): Rect {
+  const dx = Math.max(bounds.left - rect.left, Math.min(0, bounds.right - rect.right));
+  const dy = Math.max(bounds.top - rect.top, Math.min(0, bounds.bottom - rect.bottom));
+  return translate(rect, dx, dy);
 }
 
 /** Round edges to whole CSS pixels, the way Firefox does before capturing. */
-export function roundRect(r: Rect): Rect {
+export function roundRect(rect: Rect): Rect {
   return {
-    left: Math.round(r.left),
-    top: Math.round(r.top),
-    right: Math.round(r.right),
-    bottom: Math.round(r.bottom),
+    left: Math.round(rect.left),
+    top: Math.round(rect.top),
+    right: Math.round(rect.right),
+    bottom: Math.round(rect.bottom),
   };
 }
 
@@ -132,15 +124,14 @@ export function scrollStops(
   current?: number,
 ): number[] {
   if (size <= 0) throw new Error('viewport size must be positive');
-  const stops: number[] = [];
-  let want = current !== undefined && start >= current && start < current + size ? current : start;
-  for (;;) {
-    const stop = clamp(want, minScroll, maxScroll);
-    if (stops.length === 0 || stop !== stops[stops.length - 1]) stops.push(stop);
-    if (stop + size >= end) break;
-    // The region extends past what scrolling can reveal; nothing more to do.
-    if (stop >= maxScroll) break;
-    want = stop + size;
+  const startsOnScreen = current !== undefined && start >= current && start < current + size;
+  let stop = clamp(startsOnScreen ? current : start, minScroll, maxScroll);
+  const stops = [stop];
+  // Keep scrolling while the region extends past the viewport and scrolling
+  // can still reveal more of it.
+  while (stop + size < end && stop < maxScroll) {
+    stop = clamp(stop + size, minScroll, maxScroll);
+    stops.push(stop);
   }
   return stops;
 }
@@ -159,7 +150,7 @@ export function planTiles(
   range: ScrollRange,
   current?: Point,
 ): Point[] {
-  const xs = scrollStops(
+  const columns = scrollStops(
     region.left,
     region.right,
     viewport.width,
@@ -167,7 +158,7 @@ export function planTiles(
     range.maxX,
     current?.x,
   );
-  const ys = scrollStops(
+  const rows = scrollStops(
     region.top,
     region.bottom,
     viewport.height,
@@ -175,9 +166,7 @@ export function planTiles(
     range.maxY,
     current?.y,
   );
-  const tiles: Point[] = [];
-  for (const y of ys) for (const x of xs) tiles.push({ x, y });
-  return tiles;
+  return rows.flatMap((rowTop) => columns.map((columnLeft) => ({ x: columnLeft, y: rowTop })));
 }
 
 /**
@@ -190,21 +179,14 @@ export const MAX_CAPTURE_AREA = 124925329;
 
 /** Shrink a device-pixel size so it fits the canvas limits. */
 export function clampOutputSize(size: Size): Size & { cropped: boolean } {
-  let { width: w, height: h } = size;
-  let cropped = false;
-  if (w > MAX_CAPTURE_DIMENSION) {
-    w = MAX_CAPTURE_DIMENSION;
-    cropped = true;
-  }
-  if (h > MAX_CAPTURE_DIMENSION) {
-    h = MAX_CAPTURE_DIMENSION;
-    cropped = true;
-  }
-  if (w * h > MAX_CAPTURE_AREA) {
-    h = Math.floor(MAX_CAPTURE_AREA / w);
-    cropped = true;
-  }
-  return { width: w, height: h, cropped };
+  const clampedWidth = Math.min(size.width, MAX_CAPTURE_DIMENSION);
+  const sideLimitedHeight = Math.min(size.height, MAX_CAPTURE_DIMENSION);
+  const clampedHeight = Math.min(sideLimitedHeight, Math.floor(MAX_CAPTURE_AREA / clampedWidth));
+  return {
+    width: clampedWidth,
+    height: clampedHeight,
+    cropped: clampedWidth !== size.width || clampedHeight !== size.height,
+  };
 }
 
 /**
@@ -212,7 +194,7 @@ export function clampOutputSize(size: Size): Size & { cropped: boolean } {
  * edges exactly (no gaps or double-drawn rows when stitching).
  */
 export function toDeviceSpan(start: number, end: number, origin: number, scale: number) {
-  const a = Math.round((start - origin) * scale);
-  const b = Math.round((end - origin) * scale);
-  return { start: a, length: b - a };
+  const first = Math.round((start - origin) * scale);
+  const last = Math.round((end - origin) * scale);
+  return { start: first, length: last - first };
 }

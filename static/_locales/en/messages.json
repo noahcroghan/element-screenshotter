@@ -1,69 +1,113 @@
 {
-  "extName": { "message": "Element Screenshotter" },
+  "extName": {
+    "message": "Element Screenshotter"
+  },
   "extDescription": {
     "message": "Screenshot an element, a region, or the whole page. Works like Firefox Screenshots."
   },
-  "actionTitle": { "message": "Take a screenshot" },
-  "commandVisible": { "message": "Save the visible part of the page" },
-  "commandFullPage": { "message": "Save the full page" },
-
-  "menuTakeScreenshot": { "message": "Take Screenshot" },
-  "menuSaveVisible": { "message": "Save visible" },
-  "menuSaveFullPage": { "message": "Save full page" },
-
+  "actionTitle": {
+    "message": "Take a screenshot"
+  },
+  "menuTakeScreenshot": {
+    "message": "Take Screenshot"
+  },
   "instructions": {
     "message": "Drag or click on the page to select a region. Press Esc to cancel."
   },
   "navHint": {
     "message": "Arrow keys pick the parent, child, or sibling element. Enter selects it."
   },
-  "cancel": { "message": "Cancel" },
-  "cancelTitle": { "message": "Cancel (Esc)" },
-  "copy": { "message": "Copy" },
-  "copyTitle": { "message": "Copy ($1)" },
-  "download": { "message": "Download" },
-  "downloadTitle": { "message": "Download ($1)" },
-  "retry": { "message": "Retry" },
-  "retryTitle": { "message": "Retry screenshot" },
-  "saveVisible": { "message": "Save visible" },
-  "saveFullPage": { "message": "Save full page" },
-  "selectionSize": { "message": "$1 × $2" },
-  "selectionLabel": { "message": "Selected region. Use arrow keys to move it." },
-  "resizeHandleLabel": { "message": "Resize handle. Use arrow keys to resize." },
-  "dialogLabel": { "message": "Screenshot preview" },
-
-  "copied": { "message": "Copied to clipboard" },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "cancelTitle": {
+    "message": "Cancel (Esc)"
+  },
+  "copy": {
+    "message": "Copy"
+  },
+  "copyTitle": {
+    "message": "Copy ($1)"
+  },
+  "download": {
+    "message": "Download"
+  },
+  "downloadTitle": {
+    "message": "Download ($1)"
+  },
+  "retry": {
+    "message": "Retry"
+  },
+  "retryTitle": {
+    "message": "Retry screenshot"
+  },
+  "saveVisible": {
+    "message": "Save visible"
+  },
+  "saveFullPage": {
+    "message": "Save full page"
+  },
+  "selectionSize": {
+    "message": "$1 x $2"
+  },
+  "selectionLabel": {
+    "message": "Selected region. Use arrow keys to move it."
+  },
+  "resizeHandleLabel": {
+    "message": "Resize handle. Use arrow keys to resize."
+  },
+  "dialogLabel": {
+    "message": "Screenshot preview"
+  },
+  "copied": {
+    "message": "Copied to clipboard"
+  },
   "errorClipboardInsecure": {
     "message": "Copying isn't available on this page because it isn't served over HTTPS. Use Download instead."
   },
-  "errorClipboard": { "message": "Couldn't copy the screenshot: $1" },
-  "errorCapture": { "message": "Couldn't take the screenshot: $1" },
-  "errorDownload": { "message": "Couldn't save the screenshot: $1" },
-  "errorTabNotActive": { "message": "the tab was switched while capturing" },
+  "errorClipboard": {
+    "message": "Couldn't copy the screenshot: $1"
+  },
+  "errorCapture": {
+    "message": "Couldn't take the screenshot: $1"
+  },
+  "errorDownload": {
+    "message": "Couldn't save the screenshot: $1"
+  },
+  "errorTabNotActive": {
+    "message": "the tab was switched while capturing"
+  },
   "cropped": {
     "message": "The screenshot was cropped because it was too large. The limit is 32,766 pixels per side and about 125 million pixels in total."
   },
-  "restrictedPage": { "message": "Screenshots aren't allowed on this page" },
-
-  "optionsTitle": { "message": "Element Screenshotter settings" },
-  "optElementDetection": { "message": "Element detection" },
+  "restrictedPage": {
+    "message": "Screenshots aren't allowed on this page"
+  },
+  "optionsTitle": {
+    "message": "Element Screenshotter settings"
+  },
+  "optElementDetection": {
+    "message": "Element detection"
+  },
   "optSmart": {
     "message": "Smart, like Firefox. Skips headings, prefers articles, and ignores huge wrappers."
   },
-  "optExact": { "message": "Exact. Always starts from the element directly under the pointer." },
-  "optFormat": { "message": "Image format" },
-  "optPng": { "message": "PNG (lossless)" },
-  "optJpeg": { "message": "JPEG (smaller files)" },
-  "optJpegQuality": { "message": "JPEG quality" },
-  "optSaving": { "message": "Saving" },
-  "optSaveAs": { "message": "Ask where to save each screenshot" },
-  "optFolder": { "message": "Folder inside Downloads" },
-  "optFolderHint": {
-    "message": "Leave empty to save straight into Downloads. Example: Screenshots"
+  "optExact": {
+    "message": "Exact. Always starts from the element directly under the pointer."
   },
-  "optShortcut": { "message": "Keyboard shortcut" },
-  "optShortcutCurrent": { "message": "Current shortcut: $1" },
-  "optShortcutNone": { "message": "No shortcut is set." },
-  "optShortcutButton": { "message": "Change shortcuts" },
-  "optSaved": { "message": "Saved" }
+  "optShortcut": {
+    "message": "Keyboard shortcut"
+  },
+  "optShortcutCurrent": {
+    "message": "Current shortcut: $1"
+  },
+  "optShortcutNone": {
+    "message": "No shortcut is set."
+  },
+  "optShortcutButton": {
+    "message": "Change shortcut"
+  },
+  "optSaved": {
+    "message": "Saved"
+  }
 }

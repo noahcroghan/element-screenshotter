@@ -29,11 +29,10 @@ import {
   type Point,
   type Rect,
 } from '../shared/geometry';
-import { t, type MessageKey } from '../shared/i18n';
-import type { StartMode } from '../shared/messages';
+import { localize, type MessageKey } from '../shared/i18n';
 import type { Settings } from '../shared/settings';
 import { captureRegion, type CaptureResult } from './capture';
-import { h, place } from './dom';
+import { buildElement, place } from './dom';
 import {
   deepElementFromPoint,
   describeElement,
@@ -45,14 +44,13 @@ import {
   visibleSibling,
 } from './element-picker';
 import { HOST_TAG, styleHost } from './host';
-import { face, icon, type Face } from './icons';
+import { face, icon, type Face, type IconName } from './icons';
 import {
   captureFinished,
   captureViewport,
   ClipboardUnavailableError,
   copyPng,
   download,
-  encode,
 } from './output';
 import css from './overlay.css';
 import { afterPaint, measurePage, viewportRect, type PageMetrics } from './page';
@@ -66,21 +64,27 @@ const DRAG_THRESHOLD = 40;
 /** Auto-scroll when dragging within this many pixels of the viewport edge. */
 const SCROLL_BY_EDGE = 20;
 
-const MOVERS = [
-  'topLeft',
-  'top',
-  'topRight',
-  'right',
-  'bottomRight',
-  'bottom',
-  'bottomLeft',
-  'left',
-] as const;
-type Mover = (typeof MOVERS)[number];
+/** Which selection coordinates each mover handle controls. */
+const MOVER_EDGES = {
+  topLeft: ['x1', 'y1'],
+  top: ['y1'],
+  topRight: ['x2', 'y1'],
+  right: ['x2'],
+  bottomRight: ['x2', 'y2'],
+  bottom: ['y2'],
+  bottomLeft: ['x1', 'y2'],
+  left: ['x1'],
+} as const satisfies Record<string, readonly (keyof Corners)[]>;
+type Mover = keyof typeof MOVER_EDGES;
+const MOVERS = Object.keys(MOVER_EDGES) as Mover[];
 const CORNERS: ReadonlySet<string> = new Set(['topLeft', 'topRight', 'bottomRight', 'bottomLeft']);
 
 const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform);
-const ACCEL = IS_MAC ? '⌘' : 'Ctrl+';
+const ACCEL = IS_MAC ? 'Cmd+' : 'Ctrl+';
+
+/** How long notices stay up, in milliseconds. */
+const SHORT_NOTICE_MS = 2500;
+const LONG_NOTICE_MS = 6000;
 
 let sheet: CSSStyleSheet | null = null;
 
@@ -115,37 +119,66 @@ interface Corners {
   y2: number;
 }
 
+function cornersOf(rect: Rect): Corners {
+  return { x1: rect.left, y1: rect.top, x2: rect.right, y2: rect.bottom };
+}
+
+interface ButtonOptions {
+  icon?: IconName;
+  primary?: boolean;
+  ghost?: boolean;
+  title?: string;
+  aria?: string;
+}
+
+function button(id: string, label: MessageKey | null, options: ButtonOptions = {}) {
+  const classes = [options.primary && 'primary', options.ghost && 'ghost', !label && 'icon'];
+  const created = buildElement('button', {
+    id,
+    type: 'button',
+    class: classes.filter(Boolean).join(' '),
+    title: options.title,
+    'aria-label': options.aria,
+  });
+  if (options.icon) created.append(icon(options.icon));
+  if (label) created.append(buildElement('span', {}, localize(label)));
+  return created;
+}
+
 export class Overlay {
   readonly host: HTMLElement;
   #shadow: ShadowRoot;
-  #el: Elements;
+  #ui: Elements;
   #state: State = 'crosshairs';
   #metrics: PageMetrics;
   #listeners = new AbortController();
   #destroyed = false;
 
-  // Hover / element navigation
-  #hoverEl: Element | null = null;
+  // Hover and element navigation
+  #hoverElement: Element | null = null;
   #hoverByKeyboard = false;
-  #navStack: Element[] = [];
+  #navigationStack: Element[] = [];
   #pointer: Point | null = null;
   #probeQueued = false;
 
   // Selection
-  #sel: Corners = { x1: 0, y1: 0, x2: 0, y2: 0 };
-  #selectedEl: Element | null = null;
+  #selection: Corners = { x1: 0, y1: 0, x2: 0, y2: 0 };
+  #selectedElement: Element | null = null;
   #mover: Mover | 'highlight' | null = null;
-  #lastPage: Point = { x: 0, y: 0 };
+  #lastPagePoint: Point = { x: 0, y: 0 };
 
   // Preview
   #previewResult: CaptureResult | null = null;
 
-  constructor(
-    private readonly settings: Settings,
-    private readonly onClose: () => void,
-    /** Firefox focuses the action the user picked last time. */
-    private readonly lastSaveMethod: SaveMethod = 'download',
-  ) {
+  readonly #settings: Settings;
+  readonly #onClose: () => void;
+  /** Firefox focuses the action the user picked last time. */
+  readonly #lastSaveMethod: SaveMethod;
+
+  constructor(settings: Settings, onClose: () => void, lastSaveMethod: SaveMethod = 'download') {
+    this.#settings = settings;
+    this.#onClose = onClose;
+    this.#lastSaveMethod = lastSaveMethod;
     this.host = document.createElement(HOST_TAG);
     styleHost(this.host, { interactive: true });
     this.#shadow = this.host.attachShadow({ mode: 'closed' });
@@ -154,8 +187,8 @@ export class Overlay {
       sheet.replaceSync(css);
     }
     this.#shadow.adoptedStyleSheets = [sheet];
-    this.#el = this.#build();
-    this.#shadow.append(this.#el.root);
+    this.#ui = this.#build();
+    this.#shadow.append(this.#ui.root);
     this.#metrics = measurePage();
   }
 
@@ -165,16 +198,18 @@ export class Overlay {
 
   /** Read-only snapshot for tests and debugging (isolated world only). */
   snapshot() {
-    const hover = this.#hoverEl ? topLevelRect(this.#hoverEl) : null;
+    const hoverRect = this.#hoverElement ? topLevelRect(this.#hoverElement) : null;
     return {
       state: this.#state,
-      hover: this.#hoverEl ? { label: describeElement(this.#hoverEl), rect: hover } : null,
-      selection: this.#state === 'crosshairs' ? null : this.#selRect(),
-      selectedElement: this.#selectedEl ? describeElement(this.#selectedEl) : null,
+      hover: this.#hoverElement
+        ? { label: describeElement(this.#hoverElement), rect: hoverRect }
+        : null,
+      selection: this.#state === 'crosshairs' ? null : this.#selectionRect(),
+      selectedElement: this.#selectedElement ? describeElement(this.#selectedElement) : null,
     };
   }
 
-  mount(mode: StartMode) {
+  mount() {
     document.documentElement.append(this.host);
     try {
       this.host.showPopover();
@@ -183,8 +218,7 @@ export class Overlay {
     }
     this.#listen();
     this.#setState('crosshairs');
-    this.#el.root.focus({ preventScroll: true });
-    if (mode === 'visible' || mode === 'fullpage') void this.#captureForPreview(mode);
+    this.#ui.root.focus({ preventScroll: true });
   }
 
   destroy() {
@@ -192,82 +226,63 @@ export class Overlay {
     this.#destroyed = true;
     this.#listeners.abort();
     this.host.remove();
-    this.onClose();
+    this.#onClose();
   }
 
   // ---------------------------------------------------------------------------
   // DOM
 
   #build(): Elements {
-    const btn = (
-      id: string,
-      label: MessageKey | null,
-      opts: {
-        icon?: Parameters<typeof icon>[0];
-        primary?: boolean;
-        ghost?: boolean;
-        title?: string;
-        aria?: string;
-      } = {},
-    ) => {
-      const b = h('button', {
-        id,
-        type: 'button',
-        class: [opts.primary && 'primary', opts.ghost && 'ghost', !label && 'icon']
-          .filter(Boolean)
-          .join(' '),
-        title: opts.title,
-        'aria-label': opts.aria,
-      });
-      if (opts.icon) b.append(icon(opts.icon));
-      if (label) b.append(h('span', {}, t(label)));
-      return b;
-    };
-
     const theFace = face();
-    const preview = h(
+    const preview = buildElement(
       'div',
       { id: 'preview' },
-      h('div', { id: 'face' }, theFace.root),
-      h('div', { id: 'instructions' }, t('instructions')),
-      h('div', { id: 'nav-hint' }, t('navHint')),
-      btn('preview-cancel', 'cancel', { ghost: true, title: t('cancelTitle') }),
+      buildElement('div', { id: 'face' }, theFace.root),
+      buildElement('div', { id: 'instructions' }, localize('instructions')),
+      buildElement('div', { id: 'nav-hint' }, localize('navHint')),
+      button('preview-cancel', 'cancel', { ghost: true, title: localize('cancelTitle') }),
     );
 
-    const panel = h(
+    const panel = buildElement(
       'div',
       { id: 'panel' },
-      btn('save-visible', 'saveVisible'),
-      btn('save-fullpage', 'saveFullPage', { primary: true }),
+      button('save-visible', 'saveVisible'),
+      button('save-fullpage', 'saveFullPage', { primary: true }),
     );
 
-    const hover = h('div', { id: 'hover', hidden: true });
-    const hoverLabel = h('div', { id: 'hover-label', hidden: true, 'aria-live': 'polite' });
+    const hover = buildElement('div', { id: 'hover', hidden: true });
+    const hoverLabel = buildElement('div', {
+      id: 'hover-label',
+      hidden: true,
+      'aria-live': 'polite',
+    });
 
-    const size = h('span', { id: 'size' });
-    const highlight = h(
+    const size = buildElement('span', { id: 'size' });
+    const movers = MOVERS.map((mover) => {
+      const isCorner = CORNERS.has(mover);
+      return buildElement(
+        'div',
+        {
+          id: `mover-${mover}`,
+          class: isCorner ? 'mover-target' : 'mover-target edge',
+          tabindex: isCorner ? 0 : undefined,
+          role: isCorner ? 'button' : undefined,
+          'aria-label': isCorner ? localize('resizeHandleLabel') : undefined,
+        },
+        buildElement('div', { class: 'mover' }),
+      );
+    });
+    const highlight = buildElement(
       'div',
-      { id: 'highlight', tabindex: 0, role: 'group', 'aria-label': t('selectionLabel') },
-      ...MOVERS.map((m) =>
-        h(
-          'div',
-          {
-            id: `mover-${m}`,
-            class: CORNERS.has(m) ? 'mover-target' : 'mover-target edge',
-            tabindex: CORNERS.has(m) ? 0 : undefined,
-            role: CORNERS.has(m) ? 'button' : undefined,
-            'aria-label': CORNERS.has(m) ? t('resizeHandleLabel') : undefined,
-          },
-          h('div', { class: 'mover' }),
-        ),
-      ),
-      h('div', { id: 'size-wrap' }, size),
+      { id: 'highlight', tabindex: 0, role: 'group', 'aria-label': localize('selectionLabel') },
+      ...movers,
+      buildElement('div', { id: 'size-wrap' }, size),
     );
-    const bgTop = h('div', { class: 'bg' });
-    const bgBottom = h('div', { class: 'bg' });
-    const bgLeft = h('div', { class: 'bg' });
-    const bgRight = h('div', { class: 'bg' });
-    const selection = h(
+    const bgTop = buildElement('div', { class: 'bg' });
+    const bgBottom = buildElement('div', { class: 'bg' });
+    const bgLeft = buildElement('div', { class: 'bg' });
+    const bgRight = buildElement('div', { class: 'bg' });
+    const selection = buildElement(
       'div',
       { id: 'selection', hidden: true },
       bgTop,
@@ -277,51 +292,59 @@ export class Overlay {
       highlight,
     );
 
-    const downloadBtn = btn('download', 'download', {
+    const copyTitle = localize('copyTitle', `${ACCEL}C`);
+    const downloadTitle = localize('downloadTitle', `${ACCEL}S`);
+    const cancelTitle = localize('cancelTitle');
+    const copyButton = button('copy', 'copy', { icon: 'copy', title: copyTitle });
+    const downloadButton = button('download', 'download', {
       icon: 'download',
       primary: true,
-      title: t('downloadTitle', `${ACCEL}S`),
+      title: downloadTitle,
     });
-    const copyBtn = btn('copy', 'copy', { icon: 'copy', title: t('copyTitle', `${ACCEL}C`) });
-    const buttons = h(
+    const buttons = buildElement(
       'div',
       { id: 'buttons', hidden: true },
-      btn('cancel', null, { icon: 'close', title: t('cancelTitle'), aria: t('cancel') }),
-      copyBtn,
-      downloadBtn,
+      button('cancel', null, { icon: 'close', title: cancelTitle, aria: localize('cancel') }),
+      copyButton,
+      downloadButton,
     );
 
-    const dialogDownload = btn('dialog-download', 'download', {
+    const dialogCopy = button('dialog-copy', 'copy', { icon: 'copy', title: copyTitle });
+    const dialogDownload = button('dialog-download', 'download', {
       icon: 'download',
       primary: true,
-      title: t('downloadTitle', `${ACCEL}S`),
+      title: downloadTitle,
     });
-    const dialogCopy = btn('dialog-copy', 'copy', {
-      icon: 'copy',
-      title: t('copyTitle', `${ACCEL}C`),
-    });
-    const previewCanvas = h('canvas', { id: 'preview-canvas' });
-    const dialog = h(
+    const previewCanvas = buildElement('canvas', { id: 'preview-canvas' });
+    const dialog = buildElement(
       'div',
       {
         id: 'dialog',
         hidden: true,
         role: 'dialog',
         'aria-modal': 'true',
-        'aria-label': t('dialogLabel'),
+        'aria-label': localize('dialogLabel'),
       },
-      h(
+      buildElement(
         'div',
         { id: 'dialog-bar' },
-        btn('dialog-retry', null, { icon: 'retry', title: t('retryTitle'), aria: t('retry') }),
-        btn('dialog-cancel', null, { icon: 'close', title: t('cancelTitle'), aria: t('cancel') }),
+        button('dialog-retry', null, {
+          icon: 'retry',
+          title: localize('retryTitle'),
+          aria: localize('retry'),
+        }),
+        button('dialog-cancel', null, {
+          icon: 'close',
+          title: cancelTitle,
+          aria: localize('cancel'),
+        }),
         dialogCopy,
         dialogDownload,
       ),
-      h('div', { id: 'dialog-body' }, previewCanvas),
+      buildElement('div', { id: 'dialog-body' }, previewCanvas),
     );
 
-    const root = h(
+    const root = buildElement(
       'div',
       { id: 'root', tabindex: -1 },
       preview,
@@ -348,8 +371,8 @@ export class Overlay {
       highlight,
       size,
       buttons,
-      copy: copyBtn,
-      download: downloadBtn,
+      copy: copyButton,
+      download: downloadButton,
       dialog,
       dialogCopy,
       dialogDownload,
@@ -362,45 +385,31 @@ export class Overlay {
 
   #listen() {
     const signal = this.#listeners.signal;
-    const root = this.#el.root;
-    root.addEventListener(
-      'pointerdown',
-      (e) => {
-        this.#onPointerDown(e);
-      },
-      { signal },
-    );
-    root.addEventListener(
-      'pointermove',
-      (e) => {
-        this.#onPointerMove(e);
-      },
-      { signal },
-    );
-    root.addEventListener(
-      'pointerup',
-      (e) => {
-        this.#onPointerUp(e);
-      },
-      { signal },
-    );
-    root.addEventListener(
-      'pointercancel',
-      (e) => {
-        this.#onPointerUp(e);
-      },
-      { signal },
-    );
-    root.addEventListener(
-      'click',
-      (e) => {
-        this.#onClick(e);
-      },
-      { signal },
-    );
+    const root = this.#ui.root;
+    const on = <Type extends keyof HTMLElementEventMap>(
+      type: Type,
+      handler: (event: HTMLElementEventMap[Type]) => void,
+    ) => {
+      root.addEventListener(type, handler, { signal });
+    };
+    on('pointerdown', (event) => {
+      this.#onPointerDown(event);
+    });
+    on('pointermove', (event) => {
+      this.#onPointerMove(event);
+    });
+    on('pointerup', (event) => {
+      this.#onPointerUp(event);
+    });
+    on('pointercancel', (event) => {
+      this.#onPointerUp(event);
+    });
+    on('click', (event) => {
+      this.#onClick(event);
+    });
 
     // Keep page handlers from seeing interaction with the overlay.
-    for (const type of [
+    const swallowed = [
       'pointerdown',
       'pointermove',
       'pointerup',
@@ -418,11 +427,12 @@ export class Overlay {
       'touchmove',
       'touchend',
       'wheel',
-    ]) {
+    ];
+    for (const type of swallowed) {
       root.addEventListener(
         type,
-        (e) => {
-          e.stopPropagation();
+        (event) => {
+          event.stopPropagation();
         },
         { signal, passive: true },
       );
@@ -432,16 +442,16 @@ export class Overlay {
     // swallow Escape, and page shortcuts do not fire while we are open.
     window.addEventListener(
       'keydown',
-      (e) => {
-        this.#onKeyDown(e);
+      (event) => {
+        this.#onKeyDown(event);
       },
       { capture: true, signal },
     );
     for (const type of ['keyup', 'keypress']) {
       window.addEventListener(
         type,
-        (e) => {
-          e.stopImmediatePropagation();
+        (event) => {
+          event.stopImmediatePropagation();
         },
         { capture: true, signal },
       );
@@ -469,11 +479,11 @@ export class Overlay {
     );
   }
 
-  #pagePoint(e: { clientX: number; clientY: number }): Point {
-    const b = this.#metrics.bounds;
+  #pagePoint(event: { clientX: number; clientY: number }): Point {
+    const bounds = this.#metrics.bounds;
     return {
-      x: clamp(e.clientX + window.scrollX, b.left, b.right),
-      y: clamp(e.clientY + window.scrollY, b.top, b.bottom),
+      x: clamp(event.clientX + window.scrollX, bounds.left, bounds.right),
+      y: clamp(event.clientY + window.scrollY, bounds.top, bounds.bottom),
     };
   }
 
@@ -481,101 +491,84 @@ export class Overlay {
     return target instanceof Element && !!target.closest('button, #panel, #buttons, #dialog');
   }
 
-  #onPointerDown(e: PointerEvent) {
-    if (e.button !== 0) {
+  #onPointerDown(event: PointerEvent) {
+    if (event.button !== 0) {
       this.#cancelPointerGesture();
       return;
     }
-    if (this.#isUiControl(e.target)) return;
-    const p = this.#pagePoint(e);
-    const target = e.target as Element;
+    if (this.#isUiControl(event.target)) return;
+    const pagePoint = this.#pagePoint(event);
 
-    switch (this.#state) {
-      case 'crosshairs':
-        // A click can come before any pointermove (e.g. right after the
-        // shortcut). Keep a highlight the user chose with the keyboard.
-        if (!this.#hoverByKeyboard) this.#probe(e.clientX, e.clientY);
-        this.#sel = { x1: p.x, y1: p.y, x2: p.x, y2: p.y };
-        this.#el.root.setPointerCapture(e.pointerId);
-        this.#setState('draggingReady');
-        break;
-      case 'selected': {
-        const moverEl = target.closest('.mover-target, #highlight');
-        if (!moverEl) {
-          this.#setState('crosshairs');
-          return;
-        }
-        this.#mover = moverEl.id === 'highlight' ? 'highlight' : (moverEl.id.slice(6) as Mover);
-        this.#normalizeSelection();
-        this.#lastPage = p;
-        this.#el.root.setPointerCapture(e.pointerId);
-        this.#setState('resizing');
-        break;
+    if (this.#state === 'crosshairs') {
+      // A click can come before any pointermove (e.g. right after the
+      // shortcut). Keep a highlight the user chose with the keyboard.
+      if (!this.#hoverByKeyboard) this.#probe(event.clientX, event.clientY);
+      this.#selection = { x1: pagePoint.x, y1: pagePoint.y, x2: pagePoint.x, y2: pagePoint.y };
+      this.#ui.root.setPointerCapture(event.pointerId);
+      this.#setState('draggingReady');
+    } else if (this.#state === 'selected') {
+      const target = event.target as Element;
+      const grabbed = target.closest('.mover-target, #highlight');
+      if (!grabbed) {
+        this.#setState('crosshairs');
+        return;
       }
-      default:
-        break;
+      this.#mover = grabbed.id === 'highlight' ? 'highlight' : (grabbed.id.slice(6) as Mover);
+      this.#normalizeSelection();
+      this.#lastPagePoint = pagePoint;
+      this.#ui.root.setPointerCapture(event.pointerId);
+      this.#setState('resizing');
     }
   }
 
-  #onPointerMove(e: PointerEvent) {
-    switch (this.#state) {
-      case 'crosshairs': {
-        if (this.#pointer && this.#pointer.x === e.clientX && this.#pointer.y === e.clientY) return;
-        this.#pointer = { x: e.clientX, y: e.clientY };
-        this.#drawEyes(e.clientX, e.clientY);
-        this.#queueProbe();
-        break;
-      }
-      case 'draggingReady': {
-        const p = this.#pagePoint(e);
-        this.#sel.x2 = p.x;
-        this.#sel.y2 = p.y;
-        if (Math.hypot(this.#sel.x2 - this.#sel.x1, this.#sel.y2 - this.#sel.y1) > DRAG_THRESHOLD) {
-          this.#setState('dragging');
-        }
-        break;
-      }
-      case 'dragging': {
-        this.#scrollIfByEdge(e.clientX, e.clientY);
-        const p = this.#pagePoint(e);
-        this.#sel.x2 = p.x;
-        this.#sel.y2 = p.y;
-        this.#drawSelection();
-        break;
-      }
-      case 'resizing':
-        this.#scrollIfByEdge(e.clientX, e.clientY);
-        this.#resizeTo(this.#pagePoint(e));
-        this.#drawSelection();
-        break;
-      default:
-        break;
+  #onPointerMove(event: PointerEvent) {
+    const state = this.#state;
+    if (state === 'crosshairs') {
+      const moved =
+        !this.#pointer || this.#pointer.x !== event.clientX || this.#pointer.y !== event.clientY;
+      if (!moved) return;
+      this.#pointer = { x: event.clientX, y: event.clientY };
+      this.#drawEyes(event.clientX, event.clientY);
+      this.#queueProbe();
+    } else if (state === 'draggingReady') {
+      const pagePoint = this.#pagePoint(event);
+      this.#selection.x2 = pagePoint.x;
+      this.#selection.y2 = pagePoint.y;
+      const distance = Math.hypot(
+        this.#selection.x2 - this.#selection.x1,
+        this.#selection.y2 - this.#selection.y1,
+      );
+      if (distance > DRAG_THRESHOLD) this.#setState('dragging');
+    } else if (state === 'dragging') {
+      this.#scrollIfByEdge(event.clientX, event.clientY);
+      const pagePoint = this.#pagePoint(event);
+      this.#selection.x2 = pagePoint.x;
+      this.#selection.y2 = pagePoint.y;
+      this.#drawSelection();
+    } else if (state === 'resizing') {
+      this.#scrollIfByEdge(event.clientX, event.clientY);
+      this.#resizeTo(this.#pagePoint(event));
+      this.#drawSelection();
     }
   }
 
-  #onPointerUp(e: PointerEvent) {
-    if (this.#el.root.hasPointerCapture(e.pointerId)) {
-      this.#el.root.releasePointerCapture(e.pointerId);
+  #onPointerUp(event: PointerEvent) {
+    if (this.#ui.root.hasPointerCapture(event.pointerId)) {
+      this.#ui.root.releasePointerCapture(event.pointerId);
     }
-    switch (this.#state) {
-      case 'draggingReady':
-        if (this.#hoverEl) this.#selectElement(this.#hoverEl);
-        else this.#setState('crosshairs');
-        break;
-      case 'dragging': {
-        const p = this.#pagePoint(e);
-        this.#sel.x2 = p.x;
-        this.#sel.y2 = p.y;
-        this.#selectedEl = null;
-        this.#setState('selected');
-        break;
-      }
-      case 'resizing':
-        this.#resizeTo(this.#pagePoint(e));
-        this.#setState('selected', { keepFocus: true });
-        break;
-      default:
-        break;
+    const state = this.#state;
+    if (state === 'draggingReady') {
+      if (this.#hoverElement) this.#selectElement(this.#hoverElement);
+      else this.#setState('crosshairs');
+    } else if (state === 'dragging') {
+      const pagePoint = this.#pagePoint(event);
+      this.#selection.x2 = pagePoint.x;
+      this.#selection.y2 = pagePoint.y;
+      this.#selectedElement = null;
+      this.#setState('selected');
+    } else if (state === 'resizing') {
+      this.#resizeTo(this.#pagePoint(event));
+      this.#setState('selected', { keepFocus: true });
     }
   }
 
@@ -585,117 +578,97 @@ export class Overlay {
     else if (this.#state === 'dragging' || this.#state === 'resizing') this.#setState('selected');
   }
 
-  #onClick(e: MouseEvent) {
-    const button = e.target instanceof Element ? e.target.closest('button') : null;
-    if (!button) return;
-    switch (button.id) {
-      case 'preview-cancel':
-      case 'dialog-cancel':
+  #onClick(event: MouseEvent) {
+    const clicked = event.target instanceof Element ? event.target.closest('button') : null;
+    const actions: Record<string, () => void> = {
+      'preview-cancel': () => {
         this.destroy();
-        break;
-      case 'cancel':
+      },
+      'dialog-cancel': () => {
+        this.destroy();
+      },
+      cancel: () => {
         this.#setState('crosshairs');
-        break;
-      case 'save-visible':
-        void this.#captureForPreview('visible');
-        break;
-      case 'save-fullpage':
-        void this.#captureForPreview('fullpage');
-        break;
-      case 'copy':
+      },
+      'save-visible': () => void this.#captureForPreview('visible'),
+      'save-fullpage': () => void this.#captureForPreview('fullpage'),
+      copy: () => {
         this.#copySelection();
-        break;
-      case 'download':
-        void this.#downloadSelection();
-        break;
-      case 'dialog-retry':
+      },
+      download: () => void this.#downloadSelection(),
+      'dialog-retry': () => {
         this.#previewResult = null;
         this.#setState('crosshairs');
-        break;
-      case 'dialog-copy':
+      },
+      'dialog-copy': () => {
         this.#copyPreview();
-        break;
-      case 'dialog-download':
-        void this.#downloadPreview();
-        break;
-    }
+      },
+      'dialog-download': () => void this.#downloadPreview(),
+    };
+    if (clicked) actions[clicked.id]?.();
   }
 
-  #onKeyDown(e: KeyboardEvent) {
+  #onKeyDown(event: KeyboardEvent) {
     // Everything stops here; only keys we act on lose their default action.
-    e.stopImmediatePropagation();
-    if (this.#handleKey(e)) e.preventDefault();
+    event.stopImmediatePropagation();
+    if (this.#handleKey(event)) event.preventDefault();
   }
 
   /** Returns true when the key was consumed. */
-  #handleKey(e: KeyboardEvent): boolean {
-    const accel = IS_MAC ? e.metaKey : e.ctrlKey;
-    const key = e.key;
-    const focused = this.#shadow.activeElement;
-    const onButton = focused instanceof HTMLButtonElement;
-
+  #handleKey(event: KeyboardEvent): boolean {
+    const key = event.key;
     if (key === 'Escape') {
-      if (this.#state === 'crosshairs' || this.#state === 'preview') this.destroy();
-      else if (this.#state !== 'capturing') this.#setState('crosshairs');
+      this.#onEscape();
       return true;
     }
-    if (key === 'Tab') return this.#trapFocus(e.shiftKey);
+    if (key === 'Tab') return this.#trapFocus(event.shiftKey);
 
-    switch (this.#state) {
-      case 'crosshairs':
-        if (key.startsWith('Arrow')) {
-          this.#navigate(key);
-          return true;
-        }
-        if ((key === 'Enter' || key === ' ') && !onButton) {
-          if (this.#hoverEl) this.#selectElement(this.#hoverEl);
-          return true;
-        }
-        return false;
-      case 'selected':
-      case 'resizing':
-        if (key.startsWith('Arrow')) return this.#keyboardResize(e, focused);
-        if (accel && key.toLowerCase() === 'c') {
-          this.#copySelection();
-          return true;
-        }
-        if (accel && key.toLowerCase() === 's') {
-          void this.#downloadSelection();
-          return true;
-        }
-        return false;
-      case 'preview':
-        if (accel && key.toLowerCase() === 'c') {
-          this.#copyPreview();
-          return true;
-        }
-        if (accel && key.toLowerCase() === 's') {
-          void this.#downloadPreview();
-          return true;
-        }
-        return false;
-      case 'capturing':
-        return true;
-      default:
-        return false;
+    const accel = IS_MAC ? event.metaKey : event.ctrlKey;
+    const shortcut = accel ? key.toLowerCase() : '';
+    const state = this.#state;
+    if (state === 'crosshairs') return this.#handleCrosshairsKey(key);
+    if (state === 'selected' || state === 'resizing') {
+      if (key.startsWith('Arrow')) return this.#keyboardResize(event, this.#shadow.activeElement);
+      if (shortcut === 'c') this.#copySelection();
+      if (shortcut === 's') void this.#downloadSelection();
+      return shortcut === 'c' || shortcut === 's';
     }
+    if (state === 'preview') {
+      if (shortcut === 'c') this.#copyPreview();
+      if (shortcut === 's') void this.#downloadPreview();
+      return shortcut === 'c' || shortcut === 's';
+    }
+    // While capturing, every key is swallowed.
+    return state === 'capturing';
+  }
+
+  #onEscape() {
+    if (this.#state === 'crosshairs' || this.#state === 'preview') this.destroy();
+    else if (this.#state !== 'capturing') this.#setState('crosshairs');
+  }
+
+  #handleCrosshairsKey(key: string): boolean {
+    if (key.startsWith('Arrow')) {
+      this.#navigate(key);
+      return true;
+    }
+    const onButton = this.#shadow.activeElement instanceof HTMLButtonElement;
+    if ((key === 'Enter' || key === ' ') && !onButton) {
+      if (this.#hoverElement) this.#selectElement(this.#hoverElement);
+      return true;
+    }
+    return false;
   }
 
   #onScroll() {
     this.#metrics = measurePage();
-    switch (this.#state) {
-      case 'crosshairs':
-        if (this.#hoverByKeyboard || !this.#pointer) this.#drawHover();
-        else this.#queueProbe();
-        break;
-      case 'dragging':
-      case 'selected':
-      case 'resizing':
-        this.#drawSelection();
-        if (this.#state === 'selected') this.#drawButtons();
-        break;
-      default:
-        break;
+    const state = this.#state;
+    if (state === 'crosshairs') {
+      if (this.#hoverByKeyboard || !this.#pointer) this.#drawHover();
+      else this.#queueProbe();
+    } else if (state === 'dragging' || state === 'selected' || state === 'resizing') {
+      this.#drawSelection();
+      if (state === 'selected') this.#drawButtons();
     }
   }
 
@@ -704,8 +677,7 @@ export class Overlay {
     if (this.#state === 'crosshairs') {
       this.#setHover(null);
     } else if (this.#state === 'selected') {
-      const r = shiftInto(this.#selRect(), this.#metrics.bounds);
-      this.#sel = { x1: r.left, y1: r.top, x2: r.right, y2: r.bottom };
+      this.#selection = cornersOf(shiftInto(this.#selectionRect(), this.#metrics.bounds));
       this.#drawSelection();
       this.#drawButtons();
     } else if (this.#state === 'preview' && this.#previewResult) {
@@ -717,50 +689,40 @@ export class Overlay {
   // State
 
   #setState(next: State, opts: { keepFocus?: boolean } = {}) {
-    const prev = this.#state;
+    const previous = this.#state;
     this.#state = next;
-    const el = this.#el;
-    el.root.className = next === 'capturing' ? 'capturing' : next === 'resizing' ? 'dragging' : '';
+    const ui = this.#ui;
+    ui.root.className = next === 'capturing' ? 'capturing' : next === 'resizing' ? 'dragging' : '';
 
     const crosshairs = next === 'crosshairs';
     const selecting = next === 'dragging' || next === 'selected' || next === 'resizing';
-    el.preview.hidden = !crosshairs;
-    el.panel.hidden = !crosshairs;
-    el.hover.hidden = !crosshairs || !this.#hoverEl;
-    el.hoverLabel.hidden = el.hover.hidden;
-    el.selection.hidden = !selecting && !(next === 'capturing' && prev !== 'crosshairs');
-    el.buttons.hidden = next !== 'selected';
-    el.dialog.hidden = next !== 'preview';
+    ui.preview.hidden = !crosshairs;
+    ui.panel.hidden = !crosshairs;
+    ui.hover.hidden = !crosshairs || !this.#hoverElement;
+    ui.hoverLabel.hidden = ui.hover.hidden;
+    ui.selection.hidden = !selecting && !(next === 'capturing' && previous !== 'crosshairs');
+    ui.buttons.hidden = next !== 'selected';
+    ui.dialog.hidden = next !== 'preview';
 
-    switch (next) {
-      case 'crosshairs':
-        this.#selectedEl = null;
-        if (prev !== 'crosshairs') {
-          this.#setHover(null);
-          this.#el.root.focus({ preventScroll: true });
-        }
-        break;
-      case 'dragging':
-        this.#drawSelection();
-        break;
-      case 'selected':
-        this.#normalizeSelection();
-        this.#drawSelection();
-        this.#drawButtons();
-        if (!opts.keepFocus) {
-          (this.lastSaveMethod === 'copy' ? el.copy : el.download).focus({
-            preventScroll: true,
-            focusVisible: true,
-          });
-        }
-        break;
-      case 'preview':
-        (this.lastSaveMethod === 'copy' ? el.dialogCopy : el.dialogDownload).focus({
-          preventScroll: true,
-        });
-        break;
-      default:
-        break;
+    if (crosshairs) {
+      this.#selectedElement = null;
+      if (previous !== 'crosshairs') {
+        this.#setHover(null);
+        ui.root.focus({ preventScroll: true });
+      }
+    } else if (next === 'dragging') {
+      this.#drawSelection();
+    } else if (next === 'selected') {
+      this.#normalizeSelection();
+      this.#drawSelection();
+      this.#drawButtons();
+      if (!opts.keepFocus) {
+        const target = this.#lastSaveMethod === 'copy' ? ui.copy : ui.download;
+        target.focus({ preventScroll: true, focusVisible: true });
+      }
+    } else if (next === 'preview') {
+      const target = this.#lastSaveMethod === 'copy' ? ui.dialogCopy : ui.dialogDownload;
+      target.focus({ preventScroll: true });
     }
   }
 
@@ -772,197 +734,167 @@ export class Overlay {
     this.#probeQueued = true;
     requestAnimationFrame(() => {
       this.#probeQueued = false;
-      if (this.#state !== 'crosshairs' || !this.#pointer || this.#destroyed) return;
-      this.#probe(this.#pointer.x, this.#pointer.y);
+      if (this.#state === 'crosshairs' && this.#pointer && !this.#destroyed) {
+        this.#probe(this.#pointer.x, this.#pointer.y);
+      }
     });
   }
 
   /** Find the element under a client point, looking "through" the overlay like Firefox does. */
-  #probe(x: number, y: number) {
-    const root = this.#el.root;
+  #probe(clientX: number, clientY: number) {
+    const root = this.#ui.root;
     // The host must be transparent to hit testing too, not just its contents.
     this.host.style.setProperty('pointer-events', 'none', 'important');
     root.classList.add('probing');
     let hit: Element | null;
     try {
-      hit = deepElementFromPoint(document, x, y, this.host);
+      hit = deepElementFromPoint(document, clientX, clientY, this.host);
     } finally {
       root.classList.remove('probing');
       this.host.style.setProperty('pointer-events', 'auto', 'important');
     }
     const limits = detectLimitsForViewport(this.#metrics.clientWidth, this.#metrics.clientHeight);
-    const picked = hit ? pickElement(hit, this.settings.elementDetection, limits) : null;
-    this.#navStack = [];
+    const picked = hit ? pickElement(hit, this.#settings.elementDetection, limits) : null;
+    this.#navigationStack = [];
     this.#hoverByKeyboard = false;
     this.#setHover(picked);
   }
 
-  #setHover(el: Element | null) {
-    this.#hoverEl = el;
+  #setHover(target: Element | null) {
+    this.#hoverElement = target;
     this.#drawHover();
   }
 
   #navigate(key: string) {
-    let current = this.#hoverEl;
+    const current = this.#hoverElement;
     if (!current) {
       // Start from the element under the pointer, or the middle of the viewport.
-      const x = this.#pointer?.x ?? this.#metrics.clientWidth / 2;
-      const y = this.#pointer?.y ?? this.#metrics.clientHeight / 2;
-      this.#probe(x, y);
+      this.#probe(
+        this.#pointer?.x ?? this.#metrics.clientWidth / 2,
+        this.#pointer?.y ?? this.#metrics.clientHeight / 2,
+      );
       return;
     }
-    let next: Element | null = null;
-    switch (key) {
-      case 'ArrowUp':
-        next = visibleParent(current);
-        if (next) this.#navStack.push(current);
-        break;
-      case 'ArrowDown':
-        next = this.#navStack.pop() ?? visibleChild(current, this.#pointer);
-        break;
-      case 'ArrowLeft':
-        next = visibleSibling(current, -1);
-        if (next) this.#navStack = [];
-        break;
-      case 'ArrowRight':
-        next = visibleSibling(current, 1);
-        if (next) this.#navStack = [];
-        break;
-    }
+    const moves: Record<string, () => Element | null> = {
+      ArrowUp: () => {
+        const parent = visibleParent(current);
+        if (parent) this.#navigationStack.push(current);
+        return parent;
+      },
+      ArrowDown: () => this.#navigationStack.pop() ?? visibleChild(current, this.#pointer),
+      ArrowLeft: () => visibleSibling(current, -1),
+      ArrowRight: () => visibleSibling(current, 1),
+    };
+    const next = moves[key]?.() ?? null;
     if (!next) return;
-    current = next;
+    if (key === 'ArrowLeft' || key === 'ArrowRight') this.#navigationStack = [];
     this.#hoverByKeyboard = true;
-    this.#setHover(current);
-    this.#ensureVisible(current);
+    this.#setHover(next);
+    this.#ensureVisible(next);
   }
 
   /** Scroll so a keyboard-chosen element is at least partly on screen. */
-  #ensureVisible(el: Element) {
-    const r = topLevelRect(el);
-    if (!r) return;
-    const vw = this.#metrics.clientWidth;
-    const vh = this.#metrics.clientHeight;
-    if (r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) {
-      el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
-    }
+  #ensureVisible(target: Element) {
+    const rect = topLevelRect(target);
+    const { clientWidth, clientHeight } = this.#metrics;
+    const offScreen =
+      !!rect &&
+      (rect.bottom < 0 || rect.top > clientHeight || rect.right < 0 || rect.left > clientWidth);
+    if (offScreen)
+      target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
   }
 
   #drawHover() {
-    const { hover, hoverLabel } = this.#el;
-    const el = this.#hoverEl;
-    const r = el?.isConnected ? topLevelRect(el) : null;
-    if (!el || !r || this.#state !== 'crosshairs') {
+    const { hover, hoverLabel } = this.#ui;
+    const target = this.#hoverElement;
+    const rect = target?.isConnected ? topLevelRect(target) : null;
+    if (!target || !rect || this.#state !== 'crosshairs') {
       hover.hidden = true;
       hoverLabel.hidden = true;
       return;
     }
     hover.hidden = false;
     hover.classList.toggle('keyboard', this.#hoverByKeyboard);
-    place(hover, { left: r.left, top: r.top, width: width(r), height: height(r) });
+    place(hover, { left: rect.left, top: rect.top, width: width(rect), height: height(rect) });
 
     hoverLabel.hidden = false;
     hoverLabel.replaceChildren(
-      describeElement(el),
-      h('span', { class: 'dim' }, `  ${Math.round(width(r))} × ${Math.round(height(r))}`),
+      describeElement(target),
+      buildElement('span', { class: 'dim' }, `  ${sizeText(rect)}`),
     );
-    const labelH = 22;
-    const vw = this.#metrics.clientWidth;
-    const vh = this.#metrics.clientHeight;
-    let top = r.top - labelH - 4;
-    if (top < 4) top = r.bottom + 4;
-    if (top + labelH > vh - 4) top = Math.max(4, r.top + 4);
-    place(hoverLabel, { left: clamp(r.left, 4, Math.max(4, vw - 220)), top });
+    const labelHeight = 22;
+    const { clientWidth, clientHeight } = this.#metrics;
+    const above = rect.top - labelHeight - 4;
+    const below = rect.bottom + 4;
+    const preferred = above >= 4 ? above : below;
+    // Neither above nor below fits: put it inside the element's top edge.
+    const top = preferred + labelHeight > clientHeight - 4 ? Math.max(4, rect.top + 4) : preferred;
+    place(hoverLabel, { left: clamp(rect.left, 4, Math.max(4, clientWidth - 220)), top });
   }
 
   #drawEyes(clientX: number, clientY: number) {
     const { clientWidth, clientHeight } = this.#metrics;
-    const x = Math.floor((10 * (clientX - clientWidth / 2)) / clientWidth);
-    const y = Math.floor((10 * (clientY - clientHeight / 2)) / clientHeight);
-    const transform = `translate(${x}px, ${y}px)`;
-    this.#el.face.leftPupil.style.transform = transform;
-    this.#el.face.rightPupil.style.transform = transform;
+    const offsetX = Math.floor((10 * (clientX - clientWidth / 2)) / clientWidth);
+    const offsetY = Math.floor((10 * (clientY - clientHeight / 2)) / clientHeight);
+    const transform = `translate(${offsetX}px, ${offsetY}px)`;
+    this.#ui.face.leftPupil.style.transform = transform;
+    this.#ui.face.rightPupil.style.transform = transform;
   }
 
   // ---------------------------------------------------------------------------
   // Selection
 
-  #selRect(): Rect {
-    const s = this.#sel;
+  #selectionRect(): Rect {
+    const corners = this.#selection;
     return {
-      left: Math.min(s.x1, s.x2),
-      top: Math.min(s.y1, s.y2),
-      right: Math.max(s.x1, s.x2),
-      bottom: Math.max(s.y1, s.y2),
+      left: Math.min(corners.x1, corners.x2),
+      top: Math.min(corners.y1, corners.y2),
+      right: Math.max(corners.x1, corners.x2),
+      bottom: Math.max(corners.y1, corners.y2),
     };
   }
 
-  /** Sort the corners, and keep the selection at least 1×1 inside the page. */
+  /** Sort the corners, and keep the selection at least 1x1 inside the page. */
   #normalizeSelection() {
-    const r = this.#selRect();
-    const b = this.#metrics.bounds;
-    if (r.right - r.left < 1) {
-      r.right = Math.min(r.left + 1, b.right);
-      r.left = r.right - 1;
-    }
-    if (r.bottom - r.top < 1) {
-      r.bottom = Math.min(r.top + 1, b.bottom);
-      r.top = r.bottom - 1;
-    }
-    this.#sel = { x1: r.left, y1: r.top, x2: r.right, y2: r.bottom };
+    const rect = this.#selectionRect();
+    const bounds = this.#metrics.bounds;
+    const right = rect.right - rect.left < 1 ? Math.min(rect.left + 1, bounds.right) : rect.right;
+    const bottom = rect.bottom - rect.top < 1 ? Math.min(rect.top + 1, bounds.bottom) : rect.bottom;
+    this.#selection = {
+      x1: Math.min(rect.left, right - 1),
+      y1: Math.min(rect.top, bottom - 1),
+      x2: right,
+      y2: bottom,
+    };
   }
 
-  #selectElement(el: Element) {
-    const r = topLevelRect(el);
-    if (!r) return;
-    const page = clampRect(translate(r, window.scrollX, window.scrollY), this.#metrics.bounds);
+  #selectElement(target: Element) {
+    const rect = topLevelRect(target);
+    if (!rect) return;
+    const page = clampRect(translate(rect, window.scrollX, window.scrollY), this.#metrics.bounds);
     if (isEmpty(page)) return;
-    this.#sel = { x1: page.left, y1: page.top, x2: page.right, y2: page.bottom };
-    this.#selectedEl = el;
+    this.#selection = cornersOf(page);
+    this.#selectedElement = target;
     this.#setState('selected');
   }
 
-  #resizeTo(p: Point) {
-    const s = this.#sel;
-    switch (this.#mover) {
-      case 'topLeft':
-        s.x1 = p.x;
-        s.y1 = p.y;
-        break;
-      case 'top':
-        s.y1 = p.y;
-        break;
-      case 'topRight':
-        s.x2 = p.x;
-        s.y1 = p.y;
-        break;
-      case 'right':
-        s.x2 = p.x;
-        break;
-      case 'bottomRight':
-        s.x2 = p.x;
-        s.y2 = p.y;
-        break;
-      case 'bottom':
-        s.y2 = p.y;
-        break;
-      case 'bottomLeft':
-        s.x1 = p.x;
-        s.y2 = p.y;
-        break;
-      case 'left':
-        s.x1 = p.x;
-        break;
-      case 'highlight': {
-        const moved = shiftInto(
-          translate(this.#selRect(), p.x - this.#lastPage.x, p.y - this.#lastPage.y),
-          this.#metrics.bounds,
-        );
-        this.#sel = { x1: moved.left, y1: moved.top, x2: moved.right, y2: moved.bottom };
-        this.#lastPage = p;
-        break;
+  #resizeTo(pagePoint: Point) {
+    const mover = this.#mover;
+    if (mover === 'highlight') {
+      const moved = shiftInto(
+        translate(
+          this.#selectionRect(),
+          pagePoint.x - this.#lastPagePoint.x,
+          pagePoint.y - this.#lastPagePoint.y,
+        ),
+        this.#metrics.bounds,
+      );
+      this.#selection = cornersOf(moved);
+      this.#lastPagePoint = pagePoint;
+    } else if (mover) {
+      for (const edge of MOVER_EDGES[mover]) {
+        this.#selection[edge] = edge.startsWith('x') ? pagePoint.x : pagePoint.y;
       }
-      case null:
-        break;
     }
   }
 
@@ -970,27 +902,26 @@ export class Overlay {
    * Arrow keys in the selected state, following Firefox: on the region they
    * move it, on a corner handle they move that corner. Shift moves by 10px.
    */
-  #keyboardResize(e: KeyboardEvent, focused: Element | null): boolean {
+  #keyboardResize(event: KeyboardEvent, focused: Element | null): boolean {
     const id = focused?.id ?? '';
     const isHighlight = id === 'highlight';
     const corner = id.startsWith('mover-') ? id.slice(6) : '';
     if (!isHighlight && !CORNERS.has(corner)) return false;
 
-    const step = e.shiftKey ? 10 : 1;
-    const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
-    const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
-    const b = this.#metrics.bounds;
+    const step = event.shiftKey ? 10 : 1;
+    const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0;
+    const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0;
+    const bounds = this.#metrics.bounds;
     this.#normalizeSelection();
-    const s = this.#sel;
+    const corners = this.#selection;
 
     if (isHighlight) {
-      const moved = shiftInto(translate(this.#selRect(), dx, dy), b);
-      this.#sel = { x1: moved.left, y1: moved.top, x2: moved.right, y2: moved.bottom };
+      this.#selection = cornersOf(shiftInto(translate(this.#selectionRect(), dx, dy), bounds));
     } else {
-      if (corner.endsWith('Left')) s.x1 = clamp(s.x1 + dx, b.left, s.x2 - 1);
-      else s.x2 = clamp(s.x2 + dx, s.x1 + 1, b.right);
-      if (corner.startsWith('top')) s.y1 = clamp(s.y1 + dy, b.top, s.y2 - 1);
-      else s.y2 = clamp(s.y2 + dy, s.y1 + 1, b.bottom);
+      if (corner.endsWith('Left')) corners.x1 = clamp(corners.x1 + dx, bounds.left, corners.x2 - 1);
+      else corners.x2 = clamp(corners.x2 + dx, corners.x1 + 1, bounds.right);
+      if (corner.startsWith('top')) corners.y1 = clamp(corners.y1 + dy, bounds.top, corners.y2 - 1);
+      else corners.y2 = clamp(corners.y2 + dy, corners.y1 + 1, bounds.bottom);
     }
     this.#scrollSelectionIntoView();
     this.#drawSelection();
@@ -999,22 +930,22 @@ export class Overlay {
   }
 
   #scrollSelectionIntoView() {
-    const view = viewportRect(measurePage());
-    const r = this.#selRect();
-    if (!intersect(view, r)) {
-      window.scrollTo({ left: r.left - 20, top: r.top - 20, behavior: 'instant' });
+    const rect = this.#selectionRect();
+    if (!intersect(viewportRect(measurePage()), rect)) {
+      window.scrollTo({ left: rect.left - 20, top: rect.top - 20, behavior: 'instant' });
     }
   }
 
+  /** Auto-scroll while dragging near the viewport edge (Firefox's scrollIfByEdge). */
   #scrollIfByEdge(clientX: number, clientY: number) {
     const { clientWidth, clientHeight } = this.#metrics;
-    let dx = 0;
-    let dy = 0;
-    if (clientY < SCROLL_BY_EDGE) dy = -(SCROLL_BY_EDGE - clientY);
-    else if (clientHeight - clientY < SCROLL_BY_EDGE)
-      dy = SCROLL_BY_EDGE - (clientHeight - clientY);
-    if (clientX <= SCROLL_BY_EDGE) dx = -(SCROLL_BY_EDGE - clientX);
-    else if (clientWidth - clientX <= SCROLL_BY_EDGE) dx = SCROLL_BY_EDGE - (clientWidth - clientX);
+    const towardsEdge = (position: number, size: number) => {
+      if (position < SCROLL_BY_EDGE) return -(SCROLL_BY_EDGE - position);
+      if (size - position < SCROLL_BY_EDGE) return SCROLL_BY_EDGE - (size - position);
+      return 0;
+    };
+    const dx = towardsEdge(clientX, clientWidth);
+    const dy = towardsEdge(clientY, clientHeight);
     if (dx || dy) {
       window.scrollBy({ left: dx, top: dy, behavior: 'instant' });
       this.#metrics = measurePage();
@@ -1022,56 +953,71 @@ export class Overlay {
   }
 
   #drawSelection() {
-    const el = this.#el;
-    const r = translate(this.#selRect(), -window.scrollX, -window.scrollY);
-    const w = width(r);
-    const hgt = height(r);
-    const vw = this.#metrics.clientWidth;
-    const vh = this.#metrics.clientHeight;
+    const ui = this.#ui;
+    const rect = translate(this.#selectionRect(), -window.scrollX, -window.scrollY);
+    const rectWidth = width(rect);
+    const rectHeight = height(rect);
+    const { clientWidth, clientHeight } = this.#metrics;
 
-    place(el.highlight, { left: r.left, top: r.top, width: w, height: hgt });
-    el.highlight.classList.toggle('small', w < 40 || hgt < 40);
-    place(el.bgTop, { left: 0, top: 0, width: vw, height: Math.max(0, r.top) });
-    place(el.bgBottom, { left: 0, top: r.bottom, width: vw, height: Math.max(0, vh - r.bottom) });
-    place(el.bgLeft, { left: 0, top: r.top, width: Math.max(0, r.left), height: hgt });
-    place(el.bgRight, { left: r.right, top: r.top, width: Math.max(0, vw - r.right), height: hgt });
-    el.size.textContent = t('selectionSize', [String(Math.round(w)), String(Math.round(hgt))]);
+    place(ui.highlight, { left: rect.left, top: rect.top, width: rectWidth, height: rectHeight });
+    ui.highlight.classList.toggle('small', rectWidth < 40 || rectHeight < 40);
+    place(ui.bgTop, { left: 0, top: 0, width: clientWidth, height: Math.max(0, rect.top) });
+    place(ui.bgBottom, {
+      left: 0,
+      top: rect.bottom,
+      width: clientWidth,
+      height: Math.max(0, clientHeight - rect.bottom),
+    });
+    place(ui.bgLeft, { left: 0, top: rect.top, width: Math.max(0, rect.left), height: rectHeight });
+    place(ui.bgRight, {
+      left: rect.right,
+      top: rect.top,
+      width: Math.max(0, clientWidth - rect.right),
+      height: rectHeight,
+    });
+    ui.size.textContent = sizeText(rect);
   }
 
   /** Put the action bar under the bottom-right of the selection, kept on screen (Firefox's rules). */
   #drawButtons() {
-    const { buttons } = this.#el;
-    const r = translate(this.#selRect(), -window.scrollX, -window.scrollY);
-    const vw = this.#metrics.clientWidth;
-    const vh = this.#metrics.clientHeight;
-    if (!intersect(r, { left: 0, top: 0, right: vw, bottom: vh })) {
+    const { buttons } = this.#ui;
+    const rect = translate(this.#selectionRect(), -window.scrollX, -window.scrollY);
+    const { clientWidth, clientHeight } = this.#metrics;
+    if (!intersect(rect, { left: 0, top: 0, right: clientWidth, bottom: clientHeight })) {
       buttons.hidden = true;
       return;
     }
     buttons.hidden = false;
-    let top = r.bottom;
-    if (vh - r.bottom < 70) {
-      if (r.bottom < vh) top = r.bottom - 60;
-      else if (vh - r.top < 70) top = r.top - 60;
-      else top = vh - 60;
-    }
-    const bw = Math.ceil(buttons.getBoundingClientRect().width);
-    const rightEdge = Math.max(Math.min(vw, r.right), bw);
-    place(buttons, { top: Math.max(0, top), left: null, right: vw - rightEdge });
+    const roomBelow = clientHeight - rect.bottom >= 70;
+    const bottomOnScreen = rect.bottom < clientHeight;
+    const topNearBottom = clientHeight - rect.top < 70;
+    const top = roomBelow
+      ? rect.bottom
+      : bottomOnScreen
+        ? rect.bottom - 60
+        : topNearBottom
+          ? rect.top - 60
+          : clientHeight - 60;
+    const barWidth = Math.ceil(buttons.getBoundingClientRect().width);
+    const rightEdge = Math.max(Math.min(clientWidth, rect.right), barWidth);
+    place(buttons, { top: Math.max(0, top), left: null, right: clientWidth - rightEdge });
   }
 
   #trapFocus(backwards: boolean): boolean {
     const candidates = Array.from(
       this.#shadow.querySelectorAll<HTMLElement>('button, [tabindex="0"]'),
-    ).filter((el) => el.getClientRects().length > 0);
+    ).filter((candidate) => candidate.getClientRects().length > 0);
     if (candidates.length === 0) return true;
     const active = this.#shadow.activeElement;
-    const i = candidates.findIndex((c) => c === active);
-    const next =
-      i === -1
-        ? candidates[backwards ? candidates.length - 1 : 0]
-        : candidates[(i + (backwards ? -1 : 1) + candidates.length) % candidates.length];
-    next?.focus({ preventScroll: true });
+    const index = candidates.findIndex((candidate) => candidate === active);
+    const step = backwards ? -1 : 1;
+    const nextIndex =
+      index === -1
+        ? backwards
+          ? candidates.length - 1
+          : 0
+        : (index + step + candidates.length) % candidates.length;
+    candidates[nextIndex]?.focus({ preventScroll: true });
     return true;
   }
 
@@ -1102,128 +1048,138 @@ export class Overlay {
   #copySelection() {
     if (this.#state !== 'selected') return;
     if (!clipboardAvailable()) {
-      showToast(t('errorClipboardInsecure'), 'error', 6000);
+      showToast(localize('errorClipboardInsecure'), 'error', LONG_NOTICE_MS);
       return;
     }
-    const capture = this.#capture(this.#selRect(), this.#selectedEl, 'as-seen');
+    const capture = this.#capture(this.#selectionRect(), this.#selectedElement, 'as-seen');
     // Start the clipboard write now, inside the user gesture.
-    const written = copyPng(capture.then((r) => r.canvas.convertToBlob({ type: 'image/png' })));
+    const written = copyPng(
+      capture.then((result) => result.canvas.convertToBlob({ type: 'image/png' })),
+    );
     Promise.all([capture, written]).then(
-      ([r]) => {
+      ([result]) => {
         rememberSaveMethod('copy');
         this.destroy();
-        showToast(
-          r.cropped ? `${t('copied')}. ${t('cropped')}` : t('copied'),
-          'info',
-          r.cropped ? 6000 : 2500,
-        );
+        const message = result.cropped
+          ? `${localize('copied')}. ${localize('cropped')}`
+          : localize('copied');
+        showToast(message, 'info', result.cropped ? LONG_NOTICE_MS : SHORT_NOTICE_MS);
       },
-      (err: unknown) => {
-        this.#fail(err, 'copy', 'selected');
+      (error: unknown) => {
+        this.#fail(error, 'copy', 'selected');
       },
     );
   }
 
   async #downloadSelection() {
     if (this.#state !== 'selected') return;
-    let r: CaptureResult;
-    try {
-      r = await this.#capture(this.#selRect(), this.#selectedEl, 'as-seen');
-    } catch (err) {
-      this.#fail(err, 'capture', 'selected');
-      return;
-    }
-    try {
-      await this.#save(r, 'selected');
-    } catch (err) {
-      this.#fail(err, 'download', 'selected');
-    }
+    const result = await this.#capture(
+      this.#selectionRect(),
+      this.#selectedElement,
+      'as-seen',
+    ).catch((error: unknown) => {
+      this.#fail(error, 'capture', 'selected');
+      return null;
+    });
+    if (!result) return;
+    await this.#save(result, 'selected').catch((error: unknown) => {
+      this.#fail(error, 'download', 'selected');
+    });
   }
 
   async #captureForPreview(kind: 'visible' | 'fullpage') {
-    const m = measurePage();
-    const region = kind === 'visible' ? viewportRect(m) : m.bounds;
+    const metrics = measurePage();
+    const region = kind === 'visible' ? viewportRect(metrics) : metrics.bounds;
     try {
-      const r = await this.#capture(region, null, 'first-tile');
-      this.#previewResult = r;
+      const result = await this.#capture(region, null, 'first-tile');
+      this.#previewResult = result;
       this.#setState('preview');
-      this.#drawPreview(r.canvas);
-      if (r.cropped) showToast(t('cropped'), 'info', 6000);
-    } catch (err) {
-      this.#fail(err, 'capture', 'crosshairs');
+      this.#drawPreview(result.canvas);
+      if (result.cropped) showToast(localize('cropped'), 'info', LONG_NOTICE_MS);
+    } catch (error) {
+      this.#fail(error, 'capture', 'crosshairs');
     }
   }
 
   #drawPreview(source: OffscreenCanvas) {
-    const canvas = this.#el.previewCanvas;
+    const canvas = this.#ui.previewCanvas;
     const dpr = window.devicePixelRatio || 1;
-    const maxCss = Math.max(100, this.#metrics.clientWidth - 32);
-    const cssWidth = Math.min(source.width / dpr, maxCss);
+    const maxCssWidth = Math.max(100, this.#metrics.clientWidth - 32);
+    const cssWidth = Math.min(source.width / dpr, maxCssWidth);
     const scale = (cssWidth * dpr) / source.width;
     canvas.width = Math.max(1, Math.round(source.width * scale));
     canvas.height = Math.max(1, Math.round(source.height * scale));
     canvas.style.width = `${cssWidth}px`;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(source, 0, 0, canvas.width, canvas.height);
   }
 
   #copyPreview() {
-    const r = this.#previewResult;
-    if (!r || this.#state !== 'preview') return;
+    const result = this.#previewResult;
+    if (!result || this.#state !== 'preview') return;
     if (!clipboardAvailable()) {
-      showToast(t('errorClipboardInsecure'), 'error', 6000);
+      showToast(localize('errorClipboardInsecure'), 'error', LONG_NOTICE_MS);
       return;
     }
-    copyPng(r.canvas.convertToBlob({ type: 'image/png' })).then(
+    copyPng(result.canvas.convertToBlob({ type: 'image/png' })).then(
       () => {
         rememberSaveMethod('copy');
         this.destroy();
-        showToast(t('copied'), 'info', 2500);
+        showToast(localize('copied'), 'info', SHORT_NOTICE_MS);
       },
-      (err: unknown) => {
-        this.#fail(err, 'copy', 'preview');
+      (error: unknown) => {
+        this.#fail(error, 'copy', 'preview');
       },
     );
   }
 
   async #downloadPreview() {
-    const r = this.#previewResult;
-    if (!r || this.#state !== 'preview') return;
-    this.#el.dialog.querySelectorAll('button').forEach((b) => (b.disabled = true));
+    const result = this.#previewResult;
+    if (!result || this.#state !== 'preview') return;
+    const dialogButtons = this.#ui.dialog.querySelectorAll('button');
+    dialogButtons.forEach((dialogButton) => (dialogButton.disabled = true));
     try {
-      await this.#save(r, 'preview');
-    } catch (err) {
-      this.#fail(err, 'download', 'preview');
+      await this.#save(result, 'preview');
+    } catch (error) {
+      this.#fail(error, 'download', 'preview');
     } finally {
-      this.#el.dialog.querySelectorAll('button').forEach((b) => (b.disabled = false));
+      dialogButtons.forEach((dialogButton) => (dialogButton.disabled = false));
     }
   }
 
   /** Encode and download; on cancel or error, return to `back`. */
-  async #save(r: CaptureResult, back: 'selected' | 'preview') {
-    const { format, jpegQuality, saveAs, folder } = this.settings;
-    const blob = await encode(r.canvas, format, jpegQuality);
-    const filename = buildFilename({ title: document.title, date: new Date(), format, folder });
-    const outcome = await download(blob, filename, saveAs);
+  async #save(result: CaptureResult, back: 'selected' | 'preview') {
+    const blob = await result.canvas.convertToBlob({ type: 'image/png' });
+    const outcome = await download(blob, buildFilename(document.title, new Date()));
     if (outcome.ok) {
       rememberSaveMethod('download');
       this.destroy();
-      if (r.cropped) showToast(t('cropped'), 'info', 6000);
+      if (result.cropped) showToast(localize('cropped'), 'info', LONG_NOTICE_MS);
       return;
     }
     if (this.#destroyed) return;
     this.#setState(back);
-    if (!outcome.canceled) showToast(t('errorDownload', outcome.error ?? ''), 'error', 6000);
+    if (!outcome.canceled) {
+      showToast(localize('errorDownload', outcome.error ?? ''), 'error', LONG_NOTICE_MS);
+    }
   }
 
-  #fail(err: unknown, kind: 'copy' | 'capture' | 'download', back: State) {
-    console.error('[Element Screenshotter]', err);
+  #fail(error: unknown, kind: 'copy' | 'capture' | 'download', back: State) {
+    console.error('[Element Screenshotter]', error);
     if (this.#destroyed) return;
     this.#setState(back === 'preview' && !this.#previewResult ? 'crosshairs' : back);
-    showToast(errorMessage(err, kind), 'error', 6000);
+    showToast(errorMessage(error, kind), 'error', LONG_NOTICE_MS);
   }
+}
+
+/** "400 x 200", in whole CSS pixels. */
+function sizeText(rect: Rect): string {
+  return localize('selectionSize', [
+    String(Math.round(width(rect))),
+    String(Math.round(height(rect))),
+  ]);
 }
 
 export type SaveMethod = 'copy' | 'download';
@@ -1242,11 +1198,14 @@ function clipboardAvailable(): boolean {
   return window.isSecureContext && 'clipboard' in navigator && typeof ClipboardItem !== 'undefined';
 }
 
-function errorMessage(err: unknown, kind: 'copy' | 'capture' | 'download'): string {
-  if (err instanceof ClipboardUnavailableError) return t('errorClipboardInsecure');
-  let detail = err instanceof Error ? err.message : String(err);
-  if (detail === 'tab-not-active') detail = t('errorTabNotActive');
-  const key =
-    kind === 'copy' ? 'errorClipboard' : kind === 'download' ? 'errorDownload' : 'errorCapture';
-  return t(key, detail);
+function errorMessage(error: unknown, kind: 'copy' | 'capture' | 'download'): string {
+  if (error instanceof ClipboardUnavailableError) return localize('errorClipboardInsecure');
+  const message = error instanceof Error ? error.message : String(error);
+  const detail = message === 'tab-not-active' ? localize('errorTabNotActive') : message;
+  const keys = {
+    copy: 'errorClipboard',
+    capture: 'errorCapture',
+    download: 'errorDownload',
+  } as const;
+  return localize(keys[kind], detail);
 }

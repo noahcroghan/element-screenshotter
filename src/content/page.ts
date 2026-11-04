@@ -47,12 +47,12 @@ export function measurePage(win: Window = window): PageMetrics {
 }
 
 /** The visible viewport in page coordinates. */
-export function viewportRect(m: PageMetrics): Rect {
+export function viewportRect(metrics: PageMetrics): Rect {
   return {
-    left: m.scrollX,
-    top: m.scrollY,
-    right: m.scrollX + m.clientWidth,
-    bottom: m.scrollY + m.clientHeight,
+    left: metrics.scrollX,
+    top: metrics.scrollY,
+    right: metrics.scrollX + metrics.clientWidth,
+    bottom: metrics.scrollY + metrics.clientHeight,
   };
 }
 

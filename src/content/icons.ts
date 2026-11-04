@@ -6,7 +6,7 @@
  * browser/components/screenshots/ScreenshotsOverlayChild.sys.mjs.
  * The button icons are original to this project. */
 
-import { svg } from './dom';
+import { buildSvg as svg } from './dom';
 
 const ICONS = {
   close:
@@ -34,7 +34,7 @@ export interface Face {
 }
 
 export function face(): Face {
-  const line = (d: string) => svg('path', { d, class: 'face-line' });
+  const line = (pathData: string) => svg('path', { d: pathData, class: 'face-line' });
   const leftPupil = svg('ellipse', { cx: 25, cy: 30, rx: 3, ry: 3, class: 'face-pupil' });
   const rightPupil = svg('ellipse', { cx: 45, cy: 30, rx: 3, ry: 3, class: 'face-pupil' });
   const root = svg(

@@ -42,32 +42,6 @@ legend {
   margin: 4px 0;
 }
 
-.field {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin: 8px 0 0;
-}
-
-.field.stacked {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
-}
-
-input[type='text'] {
-  padding: 4px 8px;
-  font: inherit;
-}
-
-small {
-  opacity: 0.75;
-}
-
-#quality-row[hidden] {
-  display: none;
-}
-
 #status {
   min-height: 1.5em;
   margin: 0;

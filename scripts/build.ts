@@ -1,37 +1,32 @@
-#!/usr/bin/env node
 // Builds the unpacked extension into dist/.
 //
-//   node scripts/build.mjs           one-off build
-//   node scripts/build.mjs --watch   rebuild on change
-//   node scripts/build.mjs --zip     build and write artifacts/element-screenshotter-<version>.zip
+//   node scripts/build.ts           one-off build
+//   node scripts/build.ts --watch   rebuild on change
+//   node scripts/build.ts --zip     build and write artifacts/element-screenshotter-<version>.zip
 
 import * as esbuild from 'esbuild';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { zipDirectory } from './zip.mjs';
+import { watch as watchFiles } from 'node:fs';
+import { basename, dirname, join, relative } from 'node:path';
+import { zipDirectory } from './zip.ts';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = join(import.meta.dirname, '..');
 const dist = join(root, 'dist');
 const args = new Set(process.argv.slice(2));
-const watch = args.has('--watch');
-const zip = args.has('--zip');
 
-const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
+const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as { version: string };
 
-/** @type {esbuild.BuildOptions} */
-const common = {
+const common: esbuild.BuildOptions = {
   bundle: true,
   target: 'chrome116',
   loader: { '.css': 'text' },
-  sourcemap: watch ? 'inline' : false,
-  minify: false,
+  sourcemap: args.has('--watch') ? 'inline' : false,
   legalComments: 'inline',
   logLevel: 'info',
+  absWorkingDir: root,
 };
 
-const entries = [
+const entries: esbuild.BuildOptions[] = [
   // Content scripts injected with executeScript cannot be ES modules.
   { entryPoints: ['src/content/index.ts'], outfile: 'dist/content.js', format: 'iife' },
   { entryPoints: ['src/background/index.ts'], outfile: 'dist/background.js', format: 'esm' },
@@ -39,48 +34,51 @@ const entries = [
   { entryPoints: ['src/options/index.ts'], outfile: 'dist/options.js', format: 'esm' },
 ];
 
+const PAGES = [
+  'src/options/options.html',
+  'src/options/options.css',
+  'src/offscreen/offscreen.html',
+];
+
 async function copyStatic() {
   // icon.svg is the source for the PNGs and doesn't need to ship.
   await cp(join(root, 'static'), dist, { recursive: true, filter: (src) => !src.endsWith('.svg') });
-  for (const file of [
-    'src/options/options.html',
-    'src/options/options.css',
-    'src/offscreen/offscreen.html',
-  ]) {
-    await cp(join(root, file), join(dist, file.split('/').pop()));
-  }
-  const manifest = JSON.parse(await readFile(join(root, 'static/manifest.json'), 'utf8'));
+  for (const page of PAGES) await cp(join(root, page), join(dist, basename(page)));
+  const manifest = JSON.parse(await readFile(join(root, 'static/manifest.json'), 'utf8')) as Record<
+    string,
+    unknown
+  >;
   manifest.version = pkg.version;
   await writeFile(join(dist, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-  if (!existsSync(join(dist, 'icons/icon-128.png'))) {
-    console.warn('warning: icons are missing; run `pnpm icons`');
-  }
 }
 
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 await copyStatic();
 
-if (watch) {
+if (args.has('--watch')) {
   const contexts = await Promise.all(
-    entries.map((e) => esbuild.context({ ...common, ...e, absWorkingDir: root })),
+    entries.map((entry) => esbuild.context({ ...common, ...entry })),
   );
-  await Promise.all(contexts.map((c) => c.watch()));
-  const { watch: fsWatch } = await import('node:fs');
+  await Promise.all(contexts.map((context) => context.watch()));
   for (const dir of ['static', 'src/options', 'src/offscreen']) {
-    fsWatch(join(root, dir), { recursive: true }, (_event, file) => {
-      if (file && /\.(html|css|json|png|svg)$/.test(file)) {
+    watchFiles(join(root, dir), { recursive: true }, (_event, file) => {
+      if (file && /\.(html|css|json|png)$/.test(file)) {
         copyStatic().then(
-          () => console.log(`copied ${relative(root, join(dir, file))}`),
-          console.error,
+          () => {
+            console.log(`copied ${relative(root, join(dir, file))}`);
+          },
+          (error: unknown) => {
+            console.error(error);
+          },
         );
       }
     });
   }
   console.log('Watching for changes. Reload the extension in the browser after each build.');
 } else {
-  await Promise.all(entries.map((e) => esbuild.build({ ...common, ...e, absWorkingDir: root })));
-  if (zip) {
+  await Promise.all(entries.map((entry) => esbuild.build({ ...common, ...entry })));
+  if (args.has('--zip')) {
     const out = join(root, 'artifacts', `element-screenshotter-${pkg.version}.zip`);
     await mkdir(dirname(out), { recursive: true });
     await zipDirectory(dist, out);

@@ -2,7 +2,6 @@ import { describe, expect, test } from 'vitest';
 import {
   clampOutputSize,
   clampRect,
-  fromPoints,
   intersect,
   MAX_CAPTURE_AREA,
   MAX_CAPTURE_DIMENSION,
@@ -64,15 +63,6 @@ describe('planTiles', () => {
 });
 
 describe('rect helpers', () => {
-  test('fromPoints normalises any two corners', () => {
-    expect(fromPoints({ x: 10, y: 50 }, { x: 5, y: 2 })).toEqual({
-      left: 5,
-      top: 2,
-      right: 10,
-      bottom: 50,
-    });
-  });
-
   test('intersect returns null for disjoint rects', () => {
     expect(
       intersect(
@@ -111,24 +101,24 @@ describe('clampOutputSize', () => {
   });
 
   test('caps each side', () => {
-    const r = clampOutputSize({ width: 100, height: 50_000 });
-    expect(r.height).toBe(MAX_CAPTURE_DIMENSION);
-    expect(r.cropped).toBe(true);
+    const result = clampOutputSize({ width: 100, height: 50_000 });
+    expect(result.height).toBe(MAX_CAPTURE_DIMENSION);
+    expect(result.cropped).toBe(true);
   });
 
   test('caps the total area by trimming the height', () => {
-    const r = clampOutputSize({ width: 10_000, height: 20_000 });
-    expect(r.width).toBe(10_000);
-    expect(r.width * r.height).toBeLessThanOrEqual(MAX_CAPTURE_AREA);
-    expect(r.cropped).toBe(true);
+    const result = clampOutputSize({ width: 10_000, height: 20_000 });
+    expect(result.width).toBe(10_000);
+    expect(result.width * result.height).toBeLessThanOrEqual(MAX_CAPTURE_AREA);
+    expect(result.cropped).toBe(true);
   });
 });
 
 describe('toDeviceSpan', () => {
   test('adjacent spans share edges exactly at fractional scales', () => {
     const scale = 1.25;
-    const a = toDeviceSpan(0, 333, 0, scale);
-    const b = toDeviceSpan(333, 666, 0, scale);
-    expect(a.start + a.length).toBe(b.start);
+    const first = toDeviceSpan(0, 333, 0, scale);
+    const second = toDeviceSpan(333, 666, 0, scale);
+    expect(first.start + first.length).toBe(second.start);
   });
 });

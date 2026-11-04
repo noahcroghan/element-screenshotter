@@ -23,56 +23,54 @@ chrome.runtime.onConnect.addListener((port) => {
   let meta: Extract<TransferMessage, { type: 'begin' }> | null = null;
   let parts: Uint8Array<ArrayBuffer>[] = [];
 
-  const reply = (msg: TransferReply) => {
+  const reply = (message: TransferReply) => {
     try {
-      port.postMessage(msg);
+      port.postMessage(message);
     } catch {
       // The tab went away; nothing to tell.
     }
   };
 
-  port.onMessage.addListener((msg: TransferMessage) => {
-    switch (msg.type) {
-      case 'begin':
-        meta = msg;
-        parts = [];
-        break;
-      case 'chunk':
-        parts.push(base64ToBytes(msg.data));
-        break;
-      case 'end': {
-        if (!meta) {
-          reply({ type: 'done', ok: false, error: 'Transfer ended before it began' });
-          return;
-        }
-        const { mime, filename, saveAs } = meta;
-        const url = URL.createObjectURL(new Blob(parts, { type: mime }));
-        parts = [];
-        void requestDownload(url, filename, saveAs).then((res) => {
-          if (res.settled) URL.revokeObjectURL(url);
-          else
-            setTimeout(() => {
-              URL.revokeObjectURL(url);
-            }, LATE_REVOKE_MS);
-          reply({ type: 'done', ok: res.ok, error: res.error, canceled: res.canceled });
-        });
-        break;
+  const finish = (begin: Extract<TransferMessage, { type: 'begin' }>) => {
+    const url = URL.createObjectURL(new Blob(parts, { type: begin.mime }));
+    parts = [];
+    void requestDownload(url, begin.filename).then((result) => {
+      if (result.settled) URL.revokeObjectURL(url);
+      else {
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, LATE_REVOKE_MS);
       }
+      reply({ type: 'done', ok: result.ok, error: result.error, canceled: result.canceled });
+    });
+  };
+
+  port.onMessage.addListener((message: TransferMessage) => {
+    if (message.type === 'begin') {
+      meta = message;
+      parts = [];
+    } else if (message.type === 'chunk') {
+      parts.push(base64ToBytes(message.data));
+    } else if (meta) {
+      finish(meta);
+    } else {
+      reply({ type: 'done', ok: false, error: 'Transfer ended before it began' });
     }
   });
 });
 
-async function requestDownload(
-  url: string,
-  filename: string,
-  saveAs: boolean,
-): Promise<DownloadResult> {
-  const msg: ToBackground = { type: 'offscreen-download', url, filename, saveAs };
+async function requestDownload(url: string, filename: string): Promise<DownloadResult> {
+  const message: ToBackground = { type: 'offscreen-download', url, filename };
   try {
-    const res = await chrome.runtime.sendMessage<ToBackground, Result<DownloadResult>>(msg);
-    if (!res.ok) return { ok: false, error: res.error, settled: true };
-    return res.value;
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err), settled: true };
+    const response = await chrome.runtime.sendMessage<ToBackground, Result<DownloadResult>>(
+      message,
+    );
+    return response.ok ? response.value : { ok: false, error: response.error, settled: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+      settled: true,
+    };
   }
 }

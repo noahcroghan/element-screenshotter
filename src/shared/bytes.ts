@@ -5,21 +5,18 @@
  * with `fetch(dataUrl)` is not reliable. These helpers decode by hand.
  */
 
-export function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
-  const bin = atob(b64);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
+export function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
+  return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
 }
 
 export function bytesToBase64(bytes: Uint8Array): string {
   // Build the binary string in slices; String.fromCharCode has an argument limit.
   const SLICE = 0x8000;
-  let bin = '';
-  for (let i = 0; i < bytes.length; i += SLICE) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + SLICE));
+  const parts: string[] = [];
+  for (let offset = 0; offset < bytes.length; offset += SLICE) {
+    parts.push(String.fromCharCode(...bytes.subarray(offset, offset + SLICE)));
   }
-  return btoa(bin);
+  return btoa(parts.join(''));
 }
 
 export function dataUrlToBlob(dataUrl: string): Blob {
@@ -42,7 +39,7 @@ export async function* blobToBase64Chunks(
 ): AsyncGenerator<string> {
   if (chunkBytes % 3 !== 0) throw new Error('chunkBytes must be a multiple of 3');
   for (let offset = 0; offset < blob.size; offset += chunkBytes) {
-    const buf = await blob.slice(offset, offset + chunkBytes).arrayBuffer();
-    yield bytesToBase64(new Uint8Array(buf));
+    const buffer = await blob.slice(offset, offset + chunkBytes).arrayBuffer();
+    yield bytesToBase64(new Uint8Array(buffer));
   }
 }

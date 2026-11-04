@@ -4,73 +4,50 @@
  * keeps no session state, because Chrome can stop it at any time.
  */
 
-import { t } from '../shared/i18n';
+import { localize } from '../shared/i18n';
 import {
   OFFSCREEN_PATH,
   type DownloadResult,
-  type StartMode,
   type ToBackground,
   type ToContent,
 } from '../shared/messages';
 
 const CONTENT_SCRIPT = 'content.js';
 const MENU_TAKE = 'take-screenshot';
-const MENU_VISIBLE = 'save-visible';
-const MENU_FULLPAGE = 'save-fullpage';
 
 // ---------------------------------------------------------------------------
-// Entry points: toolbar button, keyboard shortcuts, context menus
+// Entry points: toolbar button, keyboard shortcut, context menu
 
 chrome.runtime.onInstalled.addListener(() => {
-  void setupMenus();
+  void chrome.contextMenus.removeAll().then(() => {
+    chrome.contextMenus.create({
+      id: MENU_TAKE,
+      title: localize('menuTakeScreenshot'),
+      contexts: ['page', 'frame', 'selection', 'link', 'image', 'video', 'audio', 'editable'],
+    });
+  });
 });
 
+// The keyboard shortcut (_execute_action) also fires onClicked.
 chrome.action.onClicked.addListener((tab) => {
-  void start(tab, 'select', true);
-});
-
-chrome.commands.onCommand.addListener((command, tab) => {
-  if (command === MENU_VISIBLE) void start(tab, 'visible', false);
-  else if (command === MENU_FULLPAGE) void start(tab, 'fullpage', false);
+  void toggle(tab);
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === MENU_TAKE) void start(tab, 'select', false);
-  else if (info.menuItemId === MENU_VISIBLE) void start(tab, 'visible', false);
-  else if (info.menuItemId === MENU_FULLPAGE) void start(tab, 'fullpage', false);
+  if (info.menuItemId === MENU_TAKE) void toggle(tab);
 });
 
-async function setupMenus() {
-  await chrome.contextMenus.removeAll();
-  chrome.contextMenus.create({
-    id: MENU_TAKE,
-    title: t('menuTakeScreenshot'),
-    contexts: ['page', 'frame', 'selection', 'link', 'image', 'video', 'audio', 'editable'],
-  });
-  chrome.contextMenus.create({
-    id: MENU_VISIBLE,
-    title: t('menuSaveVisible'),
-    contexts: ['action'],
-  });
-  chrome.contextMenus.create({
-    id: MENU_FULLPAGE,
-    title: t('menuSaveFullPage'),
-    contexts: ['action'],
-  });
-}
-
-async function start(tab: chrome.tabs.Tab | undefined, mode: StartMode, toggle: boolean) {
+async function toggle(tab: chrome.tabs.Tab | undefined) {
   const tabId = tab?.id;
-  console.debug('[Element Screenshotter] start', { mode, tabId, url: tab?.url });
   if (tabId === undefined) return;
   try {
     await chrome.scripting.executeScript({ target: { tabId }, files: [CONTENT_SCRIPT] });
-    const msg: ToContent = { type: 'start', mode, toggle };
-    await chrome.tabs.sendMessage(tabId, msg, { frameId: 0 });
-  } catch (err) {
+    const message: ToContent = { type: 'toggle' };
+    await chrome.tabs.sendMessage(tabId, message, { frameId: 0 });
+  } catch (error) {
     // chrome://, the Web Store, the PDF viewer and similar pages cannot be scripted.
-    console.warn('[Element Screenshotter] cannot start on this tab:', err);
-    await flagBadge(tabId, '!', t('restrictedPage'));
+    console.warn('[Element Screenshotter] cannot start on this tab:', error);
+    await flagBadge(tabId, '!', localize('restrictedPage'));
   }
 }
 
@@ -91,35 +68,35 @@ async function flagBadge(tabId: number, text: string, title: string) {
 // ---------------------------------------------------------------------------
 // Messages from the content script and the offscreen document
 
-type Handler = (msg: ToBackground, sender: chrome.runtime.MessageSender) => Promise<unknown>;
+type Handler = (message: ToBackground, sender: chrome.runtime.MessageSender) => Promise<unknown>;
 
-const handlers: Partial<Record<ToBackground['type'], Handler>> = {
-  'capture-visible': (msg, sender) =>
-    captureVisible(sender, msg.type === 'capture-visible' ? msg.progress : undefined),
-  'capture-finished': async (_msg, sender) => {
+const handlers: Record<ToBackground['type'], Handler> = {
+  'capture-visible': (message, sender) =>
+    captureVisible(sender, message.type === 'capture-visible' ? message.progress : undefined),
+  'capture-finished': async (_message, sender) => {
     if (sender.tab?.id !== undefined) {
       await chrome.action.setBadgeText({ tabId: sender.tab.id, text: '' });
     }
   },
   'prepare-download': () => ensureOffscreen(),
-  'offscreen-download': async (msg, sender) => {
-    if (msg.type !== 'offscreen-download') throw new Error('bad message');
+  'offscreen-download': async (message, sender) => {
+    if (message.type !== 'offscreen-download') throw new Error('bad message');
     // Only our offscreen document may ask for downloads, and only of its own blobs.
     if (sender.url !== chrome.runtime.getURL(OFFSCREEN_PATH)) throw new Error('Unexpected sender');
-    if (!msg.url.startsWith(`blob:${self.location.origin}/`)) throw new Error('Unexpected URL');
-    return startDownload(msg.url, msg.filename, msg.saveAs);
+    if (!message.url.startsWith(`blob:${self.location.origin}/`)) throw new Error('Unexpected URL');
+    return startDownload(message.url, message.filename);
   },
 };
 
-chrome.runtime.onMessage.addListener((msg: ToBackground, sender, sendResponse) => {
-  const handler = handlers[msg.type];
+chrome.runtime.onMessage.addListener((message: ToBackground, sender, sendResponse) => {
+  const handler = handlers[message.type] as Handler | undefined;
   if (!handler) return false;
-  handler(msg, sender).then(
+  handler(message, sender).then(
     (value) => {
       sendResponse({ ok: true, value });
     },
-    (err: unknown) => {
-      sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    (error: unknown) => {
+      sendResponse({ ok: false, error: error instanceof Error ? error.message : String(error) });
     },
   );
   return true;
@@ -128,27 +105,27 @@ chrome.runtime.onMessage.addListener((msg: ToBackground, sender, sendResponse) =
 // ---------------------------------------------------------------------------
 // Capturing
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const MAX_CAPTURE_ATTEMPTS = 4;
 let lastCaptureAt = 0;
 let captureQueue: Promise<unknown> = Promise.resolve();
 
-function minCaptureGap(): number {
-  // Chrome allows MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND (2) calls per second.
-  return Math.ceil(1000 / chrome.tabs.MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND) + 25;
-}
+/** Chrome allows MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND (2) calls per second. */
+const MIN_CAPTURE_GAP_MS =
+  Math.ceil(1000 / chrome.tabs.MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND) + 25;
 
 /** Capture calls are queued so concurrent requests cannot trip the rate limit. */
 function captureVisible(
   sender: chrome.runtime.MessageSender,
   progress?: { done: number; total: number },
 ): Promise<string> {
-  const run = () => captureNow(sender, progress);
+  const run = () => captureForSender(sender, progress);
   const result = captureQueue.then(run, run);
   captureQueue = result.catch(() => undefined);
   return result;
 }
 
-async function captureNow(
+async function captureForSender(
   sender: chrome.runtime.MessageSender,
   progress?: { done: number; total: number },
 ): Promise<string> {
@@ -157,24 +134,26 @@ async function captureNow(
   if (sender.frameId !== 0) throw new Error('Only the top frame may capture');
 
   if (progress && progress.total > 1) {
-    const pct = Math.round((progress.done / progress.total) * 100);
+    const percent = Math.round((progress.done / progress.total) * 100);
     void chrome.action.setBadgeBackgroundColor({ tabId: tab.id, color: '#0061e0' });
-    void chrome.action.setBadgeText({ tabId: tab.id, text: `${pct}%` });
+    void chrome.action.setBadgeText({ tabId: tab.id, text: `${percent}%` });
   }
+  return captureTab(tab.id, tab.windowId, 1);
+}
 
-  for (let attempt = 0; ; attempt++) {
-    const wait = lastCaptureAt + minCaptureGap() - Date.now();
-    if (wait > 0) await sleep(wait);
-    // captureVisibleTab captures whatever tab is active in the window.
-    const [active] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
-    if (active?.id !== tab.id) throw new Error('tab-not-active');
-    lastCaptureAt = Date.now();
-    try {
-      return await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
-    } catch (err) {
-      const quota = err instanceof Error && err.message.includes('MAX_CAPTURE_VISIBLE_TAB');
-      if (!quota || attempt >= 3) throw err;
-    }
+async function captureTab(tabId: number, windowId: number, attempt: number): Promise<string> {
+  const wait = lastCaptureAt + MIN_CAPTURE_GAP_MS - Date.now();
+  if (wait > 0) await sleep(wait);
+  // captureVisibleTab captures whatever tab is active in the window.
+  const [active] = await chrome.tabs.query({ active: true, windowId });
+  if (active?.id !== tabId) throw new Error('tab-not-active');
+  lastCaptureAt = Date.now();
+  try {
+    return await chrome.tabs.captureVisibleTab(windowId, { format: 'png' });
+  } catch (error) {
+    const quota = error instanceof Error && error.message.includes('MAX_CAPTURE_VISIBLE_TAB');
+    if (quota && attempt < MAX_CAPTURE_ATTEMPTS) return captureTab(tabId, windowId, attempt + 1);
+    throw error;
   }
 }
 
@@ -205,16 +184,12 @@ async function ensureOffscreen(): Promise<void> {
 /** How long to wait for a download to finish before reporting success anyway. */
 const DOWNLOAD_SETTLE_MS = 30_000;
 
-async function startDownload(
-  url: string,
-  filename: string,
-  saveAs: boolean,
-): Promise<DownloadResult> {
+async function startDownload(url: string, filename: string): Promise<DownloadResult> {
   let id: number;
   try {
-    id = await chrome.downloads.download({ url, filename, saveAs, conflictAction: 'uniquify' });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    id = await chrome.downloads.download({ url, filename, conflictAction: 'uniquify' });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     return { ok: false, canceled: /cancel/i.test(message), error: message, settled: true };
   }
   const state = await waitForDownload(id, DOWNLOAD_SETTLE_MS);
@@ -225,24 +200,19 @@ async function startDownload(
   return { ok: true, settled: state.state === 'complete' };
 }
 
-function waitForDownload(
-  id: number,
-  timeoutMs: number,
-): Promise<{ state: 'complete' | 'interrupted' | 'in_progress'; error?: string }> {
+type DownloadState = { state: 'complete' | 'interrupted' | 'in_progress'; error?: string };
+
+function waitForDownload(id: number, timeoutMs: number): Promise<DownloadState> {
   return new Promise((resolve) => {
-    const finish = (value: {
-      state: 'complete' | 'interrupted' | 'in_progress';
-      error?: string;
-    }) => {
+    const finish = (value: DownloadState) => {
       clearTimeout(timer);
       chrome.downloads.onChanged.removeListener(onChanged);
       resolve(value);
     };
     const onChanged = (delta: chrome.downloads.DownloadDelta) => {
-      if (delta.id !== id) return;
-      const s = delta.state?.current;
-      if (s === 'complete') finish({ state: 'complete' });
-      else if (s === 'interrupted') finish({ state: 'interrupted', error: delta.error?.current });
+      const current = delta.id === id ? delta.state?.current : undefined;
+      if (current === 'complete') finish({ state: 'complete' });
+      if (current === 'interrupted') finish({ state: 'interrupted', error: delta.error?.current });
     };
     const timer = setTimeout(() => {
       finish({ state: 'in_progress' });
@@ -251,7 +221,7 @@ function waitForDownload(
     // It may already be done (small blobs finish almost instantly).
     void chrome.downloads.search({ id }).then(([item]) => {
       if (item?.state === 'complete') finish({ state: 'complete' });
-      else if (item?.state === 'interrupted') finish({ state: 'interrupted', error: item.error });
+      if (item?.state === 'interrupted') finish({ state: 'interrupted', error: item.error });
     });
   });
 }

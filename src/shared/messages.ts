@@ -3,29 +3,25 @@
  * messages as JSON, so everything here must be plain data.
  */
 
-/** What the user asked for when starting a session. */
-export type StartMode = 'select' | 'visible' | 'fullpage';
-
-/** Service worker -> content script. */
-export type ToContent = { type: 'start'; mode: StartMode; toggle: boolean };
+/** Service worker -> content script: open the overlay, or close it if it is open. */
+export type ToContent = { type: 'toggle' };
 
 /** Content script / offscreen -> service worker. */
 export type ToBackground =
   | { type: 'capture-visible'; progress?: { done: number; total: number } }
   | { type: 'capture-finished' }
   | { type: 'prepare-download' }
-  | { type: 'offscreen-download'; url: string; filename: string; saveAs: boolean };
+  | { type: 'offscreen-download'; url: string; filename: string };
 
 export type Result<T = undefined> =
-  | ({ ok: true } & (T extends undefined ? unknown : { value: T }))
-  | { ok: false; error: string; canceled?: boolean };
+  ({ ok: true } & (T extends undefined ? unknown : { value: T })) | { ok: false; error: string };
 
 /** Name of the port used to stream image bytes to the offscreen document. */
 export const TRANSFER_PORT = 'image-transfer';
 
 /** Content script -> offscreen document over the transfer port. */
 export type TransferMessage =
-  | { type: 'begin'; mime: string; filename: string; saveAs: boolean }
+  | { type: 'begin'; mime: string; filename: string }
   | { type: 'chunk'; data: string }
   | { type: 'end' };
 
@@ -39,6 +35,9 @@ export interface DownloadResult {
   ok: boolean;
   canceled?: boolean;
   error?: string;
-  /** False if the download was still running when the worker stopped waiting. */
+  /**
+   * False if the download was still running when the worker stopped
+   * waiting, e.g. because the browser asks where to save every file.
+   */
   settled: boolean;
 }

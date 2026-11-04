@@ -12,32 +12,19 @@ describe('normalizeSettings', () => {
     expect(normalizeSettings(undefined)).toEqual(DEFAULT_SETTINGS);
   });
 
-  test('rejects invalid values and clamps quality', () => {
-    expect(
-      normalizeSettings({
-        elementDetection: 'magic',
-        format: 'gif',
-        jpegQuality: 7,
-        saveAs: 'yes',
-        folder: 3,
-      }),
-    ).toEqual({ ...DEFAULT_SETTINGS, jpegQuality: 1 });
+  test('rejects invalid values', () => {
+    expect(normalizeSettings({ elementDetection: 'magic' })).toEqual(DEFAULT_SETTINGS);
   });
 
-  test('keeps valid values', () => {
-    const s = {
+  test('keeps valid values and drops unknown keys', () => {
+    expect(normalizeSettings({ elementDetection: 'exact', format: 'jpeg' })).toEqual({
       elementDetection: 'exact',
-      format: 'jpeg',
-      jpegQuality: 0.8,
-      saveAs: true,
-      folder: 'Shots',
-    };
-    expect(normalizeSettings(s)).toEqual(s);
+    });
   });
 });
 
 describe('bytes', () => {
-  const bytes = new Uint8Array(100_000).map((_, i) => (i * 7) % 256);
+  const bytes = new Uint8Array(100_000).map((_value, index) => (index * 7) % 256);
 
   test('base64 round trip', () => {
     expect(base64ToBytes(bytesToBase64(bytes))).toEqual(bytes);
@@ -45,15 +32,11 @@ describe('bytes', () => {
 
   test('chunks reassemble into the original bytes', async () => {
     const chunks: Uint8Array[] = [];
-    for await (const c of blobToBase64Chunks(new Blob([bytes]), 3 * 1000))
-      chunks.push(base64ToBytes(c));
-    expect(chunks.length).toBe(Math.ceil(bytes.length / 3000));
-    const joined = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
-    let o = 0;
-    for (const c of chunks) {
-      joined.set(c, o);
-      o += c.length;
+    for await (const chunk of blobToBase64Chunks(new Blob([bytes]), 3 * 1000)) {
+      chunks.push(base64ToBytes(chunk));
     }
+    expect(chunks.length).toBe(Math.ceil(bytes.length / 3000));
+    const joined = Uint8Array.from(chunks.flatMap((chunk) => Array.from(chunk)));
     expect(joined).toEqual(bytes);
   });
 
@@ -62,11 +45,11 @@ describe('bytes', () => {
   });
 
   test('dataUrlToBlob decodes base64 and plain data URLs', async () => {
-    const b = dataUrlToBlob(`data:image/png;base64,${bytesToBase64(bytes.subarray(0, 10))}`);
-    expect(b.type).toBe('image/png');
-    expect(new Uint8Array(await b.arrayBuffer())).toEqual(bytes.subarray(0, 10));
-    const t = dataUrlToBlob('data:text/plain,hello%20world');
-    expect(await t.text()).toBe('hello world');
+    const pngBlob = dataUrlToBlob(`data:image/png;base64,${bytesToBase64(bytes.subarray(0, 10))}`);
+    expect(pngBlob.type).toBe('image/png');
+    expect(new Uint8Array(await pngBlob.arrayBuffer())).toEqual(bytes.subarray(0, 10));
+    const textBlob = dataUrlToBlob('data:text/plain,hello%20world');
+    expect(await textBlob.text()).toBe('hello world');
     expect(() => dataUrlToBlob('https://example.com')).toThrow();
   });
 });

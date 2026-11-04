@@ -12,15 +12,15 @@ import {
 } from '../../src/content/element-picker';
 
 // happy-dom has no layout, so each test assigns boxes through data-box="l t w h".
-const rectOf: RectFn = (el) => {
-  const box = el.getAttribute('data-box');
+const rectOf: RectFn = (element) => {
+  const box = element.getAttribute('data-box');
   if (!box) return { left: 0, top: 0, right: 0, bottom: 0 };
-  const [l = 0, t = 0, w = 0, h = 0] = box.split(' ').map(Number);
-  return { left: l, top: t, right: l + w, bottom: t + h } satisfies Rect;
+  const [left = 0, top = 0, boxWidth = 0, boxHeight = 0] = box.split(' ').map(Number);
+  return { left, top, right: left + boxWidth, bottom: top + boxHeight } satisfies Rect;
 };
 
 const limits = { maxWidth: 1000, maxHeight: 700 };
-const $ = (sel: string) => document.querySelector(sel) as Element;
+const query = (selector: string) => document.querySelector(selector) as Element;
 
 beforeEach(() => {
   document.body.innerHTML = `
@@ -45,67 +45,67 @@ beforeEach(() => {
 describe('bestElement (Firefox heuristic)', () => {
   test('keeps a reasonably sized element', () => {
     document.getElementById('post')?.removeAttribute('role');
-    expect(bestElement($('#inner'), limits, rectOf)?.id).toBe('inner');
+    expect(bestElement(query('#inner'), limits, rectOf)?.id).toBe('inner');
   });
 
   test('skips headings and walks up', () => {
     document.getElementById('post')?.removeAttribute('role');
-    expect(bestElement($('#heading'), limits, rectOf)?.id).toBe('section');
+    expect(bestElement(query('#heading'), limits, rectOf)?.id).toBe('section');
   });
 
   test('prefers an enclosing role=article that fits', () => {
-    expect(bestElement($('#inner'), limits, rectOf)?.id).toBe('post');
+    expect(bestElement(query('#inner'), limits, rectOf)?.id).toBe('post');
   });
 
   test('ignores tiny elements', () => {
     document.getElementById('post')?.removeAttribute('role');
-    expect(bestElement($('#tiny'), limits, rectOf)).toBeNull();
+    expect(bestElement(query('#tiny'), limits, rectOf)).toBeNull();
   });
 
   test('rejects elements bigger than the limits', () => {
-    expect(bestElement($('#huge'), limits, rectOf)).toBeNull();
+    expect(bestElement(query('#huge'), limits, rectOf)).toBeNull();
   });
 });
 
 describe('pickElement', () => {
   test('exact mode returns the element itself', () => {
-    expect(pickElement($('#inner'), 'exact', limits, rectOf)?.id).toBe('inner');
-    expect(pickElement($('#huge'), 'exact', limits, rectOf)?.id).toBe('huge');
+    expect(pickElement(query('#inner'), 'exact', limits, rectOf)?.id).toBe('inner');
+    expect(pickElement(query('#huge'), 'exact', limits, rectOf)?.id).toBe('huge');
   });
 
   test('exact mode ignores zero-size elements', () => {
-    expect(pickElement($('#hidden'), 'exact', limits, rectOf)).toBeNull();
+    expect(pickElement(query('#hidden'), 'exact', limits, rectOf)).toBeNull();
   });
 });
 
 describe('tree navigation', () => {
   test('visibleParent skips wrappers with the same box', () => {
-    expect(visibleParent($('#card'), rectOf)?.id).toBe('section');
+    expect(visibleParent(query('#card'), rectOf)?.id).toBe('section');
   });
 
   test('visibleParent stops below <html>', () => {
     document.body.setAttribute('data-box', '0 0 1280 5000');
-    expect(visibleParent($('#page'), rectOf)?.localName).toBe('body');
+    expect(visibleParent(query('#page'), rectOf)?.localName).toBe('body');
     expect(visibleParent(document.body, rectOf)).toBeNull();
   });
 
   test('visibleChild prefers the child under the pointer', () => {
-    expect(visibleChild($('#card'), { x: 205, y: 102 }, rectOf)?.id).toBe('tiny');
-    expect(visibleChild($('#card'), null, rectOf)?.id).toBe('inner');
+    expect(visibleChild(query('#card'), { x: 205, y: 102 }, rectOf)?.id).toBe('tiny');
+    expect(visibleChild(query('#card'), null, rectOf)?.id).toBe('inner');
   });
 
   test('visibleChild looks through same-box wrappers', () => {
-    expect(visibleChild($('#wrapper'), null, rectOf)?.id).toBe('inner');
+    expect(visibleChild(query('#wrapper'), null, rectOf)?.id).toBe('inner');
   });
 
   test('visibleSibling skips invisible siblings', () => {
-    expect(visibleSibling($('#wrapper'), 1, rectOf)?.id).toBe('sibling');
-    expect(visibleSibling($('#sibling'), -1, rectOf)?.id).toBe('wrapper');
-    expect(visibleSibling($('#heading'), -1, rectOf)).toBeNull();
+    expect(visibleSibling(query('#wrapper'), 1, rectOf)?.id).toBe('sibling');
+    expect(visibleSibling(query('#sibling'), -1, rectOf)?.id).toBe('wrapper');
+    expect(visibleSibling(query('#heading'), -1, rectOf)).toBeNull();
   });
 
   test('composedParent crosses shadow roots', () => {
-    const host = $('#inner');
+    const host = query('#inner');
     const root = host.attachShadow({ mode: 'open' });
     const inside = document.createElement('div');
     root.append(inside);
@@ -115,7 +115,7 @@ describe('tree navigation', () => {
 
 describe('describeElement', () => {
   test('formats tag, id and up to three classes', () => {
-    expect(describeElement($('#card'))).toBe('div#card.a.b.c…');
-    expect(describeElement($('#heading'))).toBe('h2#heading');
+    expect(describeElement(query('#card'))).toBe('div#card.a.b.c...');
+    expect(describeElement(query('#heading'))).toBe('h2#heading');
   });
 });

@@ -1,8 +1,8 @@
 /**
- * End-to-end harness: a real Chromium browser (Helium by default) with the
- * built extension loaded, plus a local fixture server.
+ * End-to-end harness: a real Chromium browser with the built extension
+ * loaded, plus a local fixture server.
  *
- *   BROWSER_PATH=...   use a different browser
+ *   BROWSER_PATH=...   use a specific browser (default: Chrome for Testing)
  *   HEADFUL=1          show the browser window
  *   DPR=2              force a device scale factor
  */
@@ -18,22 +18,28 @@ import puppeteer, {
   TargetType,
   type Browser,
   type Extension,
+  type KeyInput,
   type Page,
   type Target,
 } from 'puppeteer-core';
-import { findBrowser } from '../../scripts/browser-path.mjs';
+import { findBrowser } from '../../scripts/browser-path.ts';
 
 /** The repository root: the nearest ancestor with a package.json. */
 function findRoot(from: string): string {
-  for (let dir = from; ; dir = dirname(dir)) {
-    if (existsSync(join(dir, 'package.json'))) return dir;
+  let dir = from;
+  while (!existsSync(join(dir, 'package.json'))) {
     if (dirname(dir) === dir) throw new Error('package.json not found');
+    dir = dirname(dir);
   }
+  return dir;
 }
 
 const ROOT = findRoot(import.meta.dirname);
 const DIST = join(ROOT, 'dist');
 const FIXTURES = join(ROOT, 'test', 'e2e', 'fixtures');
+
+/** The modifier the extension uses for Copy and Download shortcuts on this OS. */
+export const ACCEL: KeyInput = process.platform === 'darwin' ? 'Meta' : 'Control';
 
 export const STRICT_CSP =
   "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; frame-src 'self'; require-trusted-types-for 'script'";
@@ -52,17 +58,51 @@ export interface Rect {
   bottom: number;
 }
 
+export function sleep(ms: number) {
+  return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+}
+
+/** Poll `probe` until it returns a value that isn't undefined, or time out. */
+async function poll<Value>(
+  probe: () => Promise<Value | undefined>,
+  timeoutMs: number,
+): Promise<Value | undefined> {
+  const end = Date.now() + timeoutMs;
+  let value = await probe();
+  while (value === undefined && Date.now() < end) {
+    await sleep(100);
+    value = await probe();
+  }
+  return value;
+}
+
 export class Harness {
-  private constructor(
-    readonly browser: Browser,
-    readonly extension: Extension,
-    readonly origin: string,
-    /** Same server, but a non-secure context (no async clipboard). */
-    readonly insecureOrigin: string,
-    readonly downloads: string,
-    private readonly server: Server,
-    private readonly profile: string,
-  ) {}
+  readonly browser: Browser;
+  readonly extension: Extension;
+  readonly origin: string;
+  /** Same server, but a non-secure context (no async clipboard). */
+  readonly insecureOrigin: string;
+  readonly downloads: string;
+  readonly #server: Server;
+  readonly #profile: string;
+
+  private constructor(parts: {
+    browser: Browser;
+    extension: Extension;
+    origin: string;
+    insecureOrigin: string;
+    downloads: string;
+    server: Server;
+    profile: string;
+  }) {
+    this.browser = parts.browser;
+    this.extension = parts.extension;
+    this.origin = parts.origin;
+    this.insecureOrigin = parts.insecureOrigin;
+    this.downloads = parts.downloads;
+    this.#server = parts.server;
+    this.#profile = parts.profile;
+  }
 
   static async launch(): Promise<Harness> {
     const downloads = await mkdtemp(join(tmpdir(), 'es-downloads-'));
@@ -83,64 +123,56 @@ export class Harness {
     const server = await startServer();
     const port = (server.address() as AddressInfo).port;
     const origin = `http://127.0.0.1:${port}`;
-    const dpr = process.env.DPR ?? '1';
     const browser = await puppeteer.launch({
-      executablePath: findBrowser(),
+      executablePath: await findBrowser(),
       headless: !process.env.HEADFUL,
       userDataDir: profile,
       enableExtensions: [DIST],
       defaultViewport: null,
       args: [
-        `--force-device-scale-factor=${dpr}`,
+        `--force-device-scale-factor=${process.env.DPR ?? '1'}`,
         '--window-size=1280,900',
         '--no-first-run',
         '--no-default-browser-check',
-        '--disable-features=DownloadBubble',
         // http://insecure.test is a non-secure origin (unlike 127.0.0.1).
         '--host-resolver-rules=MAP insecure.test 127.0.0.1',
+        // Ubuntu 24.04+ blocks the user namespaces Chrome's sandbox needs.
+        // The tests only load local fixture pages.
+        ...(process.platform === 'linux' ? ['--no-sandbox'] : []),
       ],
     });
     // The extension list fills in shortly after launch.
-    let extension: Extension | undefined;
-    for (let i = 0; i < 100 && !extension; i++) {
+    const extension = await poll(async () => {
       const extensions = await browser.extensions();
-      extension = [...extensions.values()].find((e) => e.name === 'Element Screenshotter');
-      if (!extension) await sleep(100);
-    }
+      return [...extensions.values()].find(
+        (candidate) => candidate.name === 'Element Screenshotter',
+      );
+    }, 10_000);
     if (!extension) throw new Error('The extension did not load');
     await waitForBundledContentBlocker(browser, origin);
     watchServiceWorkerLogs(browser, extension.id);
-    return new Harness(
+    return new Harness({
       browser,
       extension,
       origin,
-      `http://insecure.test:${port}`,
+      insecureOrigin: `http://insecure.test:${port}`,
       downloads,
       server,
       profile,
-    );
+    });
   }
 
   async close() {
     await this.browser.close();
-    await new Promise((r) => this.server.close(r));
-    await rm(this.profile, { recursive: true, force: true }).catch(() => undefined);
+    await new Promise((resolveClose) => this.#server.close(resolveClose));
+    await rm(this.#profile, { recursive: true, force: true }).catch(() => undefined);
     await rm(this.downloads, { recursive: true, force: true }).catch(() => undefined);
   }
 
   /** Open a fixture page in a fresh tab. Prefix the path with /strict/ for a strict CSP. */
   async open(path: string, origin = this.origin): Promise<Page> {
     const page = await this.browser.newPage();
-    // A brand-new tab is occasionally still settling and aborts the first navigation.
-    for (let attempt = 0; ; attempt++) {
-      try {
-        await page.goto(`${origin}/${path}`, { waitUntil: 'load' });
-        break;
-      } catch (err) {
-        if (attempt >= 2 || !String(err).includes('ERR_ABORTED')) throw err;
-        await sleep(200);
-      }
-    }
+    await gotoWithRetry(page, `${origin}/${path}`, 3);
     await page.bringToFront();
     return page;
   }
@@ -156,31 +188,31 @@ export class Harness {
     // Other extensions (Helium ships uBlock Origin) have realms too, and
     // realms of torn-down frames can linger, so skip anything that fails.
     for (const realm of page.extensionRealms()) {
-      try {
-        const ext = await realm.extension();
-        if (ext?.id !== this.extension.id) continue;
-        const snap = (await realm.evaluate(
-          () =>
-            (
-              globalThis as { __elementScreenshotter?: { snapshot(): unknown } }
-            ).__elementScreenshotter?.snapshot() ?? null,
-        )) as Snapshot | null;
-        if (snap) return snap;
-      } catch {
-        // Stale realm.
-      }
+      const snap = await realm
+        .extension()
+        .then((owner) =>
+          owner?.id === this.extension.id
+            ? (realm.evaluate(
+                () =>
+                  (
+                    globalThis as { __elementScreenshotter?: { snapshot(): unknown } }
+                  ).__elementScreenshotter?.snapshot() ?? null,
+              ) as Promise<Snapshot | null>)
+            : null,
+        )
+        .catch(() => null);
+      if (snap) return snap;
     }
     return null;
   }
 
   async waitForState(page: Page, state: string | null, timeout = 30_000): Promise<Snapshot | null> {
-    const end = Date.now() + timeout;
     let last: Snapshot | null = null;
-    while (Date.now() < end) {
+    const reached = await poll(async () => {
       last = await this.snapshot(page);
-      if ((last?.state ?? null) === state) return last;
-      await sleep(50);
-    }
+      return (last?.state ?? null) === state ? { snapshot: last } : undefined;
+    }, timeout);
+    if (reached) return reached.snapshot;
     throw new Error(
       `Timed out waiting for state ${state}; last: ${JSON.stringify(last)}\n` +
         `Service worker log:\n${serviceWorkerLog.slice(-20).join('\n') || '(empty)'}`,
@@ -189,32 +221,48 @@ export class Harness {
 
   /** Wait for a finished download (searching sub-folders) and return its path. */
   async nextDownload(timeout = 30_000): Promise<string> {
-    const end = Date.now() + timeout;
-    while (Date.now() < end) {
-      // In-progress downloads are *.crdownload on Windows and macOS, and
-      // hidden .org.chromium.Chromium.* files on Linux. Skip both.
-      const files = (await readdir(this.downloads, { recursive: true, withFileTypes: true }))
-        .filter((d) => d.isFile() && !d.name.startsWith('.') && !/\.(crdownload|tmp)$/.test(d.name))
-        .map((d) => join(d.parentPath, d.name));
-      const file = files[0];
-      if (file) {
-        try {
-          // Make sure it is fully written.
-          const size = (await stat(file)).size;
-          await sleep(100);
-          if ((await stat(file)).size === size && size > 0) return file;
-        } catch {
-          // Renamed or removed while we looked; try again.
-        }
-      }
+    const file = await poll(() => this.#finishedDownload(), timeout);
+    if (!file) throw new Error('Timed out waiting for a download');
+    return file;
+  }
+
+  async #finishedDownload(): Promise<string | undefined> {
+    // In-progress downloads are *.crdownload on Windows and macOS, and
+    // hidden .org.chromium.Chromium.* files on Linux. Skip both.
+    const entries = await readdir(this.downloads, { recursive: true, withFileTypes: true });
+    const file = entries
+      .filter(
+        (entry) =>
+          entry.isFile() && !entry.name.startsWith('.') && !/\.(crdownload|tmp)$/.test(entry.name),
+      )
+      .map((entry) => join(entry.parentPath, entry.name))[0];
+    if (!file) return undefined;
+    try {
+      // Make sure it is fully written.
+      const size = (await stat(file)).size;
       await sleep(100);
+      return (await stat(file)).size === size && size > 0 ? file : undefined;
+    } catch {
+      // Renamed or removed while we looked; try again.
+      return undefined;
     }
-    throw new Error('Timed out waiting for a download');
   }
 
   async clearDownloads() {
-    for (const f of await readdir(this.downloads))
-      await rm(join(this.downloads, f), { force: true });
+    for (const entry of await readdir(this.downloads)) {
+      await rm(join(this.downloads, entry), { force: true, recursive: true });
+    }
+  }
+}
+
+async function gotoWithRetry(page: Page, url: string, attempts: number): Promise<void> {
+  try {
+    await page.goto(url, { waitUntil: 'load' });
+  } catch (error) {
+    // A brand-new tab is occasionally still settling and aborts the first navigation.
+    if (attempts <= 1 || !String(error).includes('ERR_ABORTED')) throw error;
+    await sleep(200);
+    await gotoWithRetry(page, url, attempts - 1);
   }
 }
 
@@ -226,13 +274,13 @@ function watchServiceWorkerLogs(browser: Browser, extensionId: string) {
   const attach = async (target: Target) => {
     if (target.type() !== TargetType.SERVICE_WORKER || !target.url().includes(extensionId)) return;
     const worker = await target.worker().catch(() => null);
-    worker?.on('console', (msg) => {
-      serviceWorkerLog.push(`[${new Date().toISOString()}] ${msg.type()}: ${msg.text()}`);
+    worker?.on('console', (message) => {
+      serviceWorkerLog.push(`[${new Date().toISOString()}] ${message.type()}: ${message.text()}`);
       if (serviceWorkerLog.length > 200) serviceWorkerLog.shift();
     });
   };
-  for (const t of browser.targets()) void attach(t);
-  browser.on('targetcreated', (t: Target) => void attach(t));
+  for (const target of browser.targets()) void attach(target);
+  browser.on('targetcreated', (target: Target) => void attach(target));
 }
 
 /** Helium's built-in uBlock Origin. */
@@ -242,10 +290,10 @@ const HELIUM_UBLOCK_ID = 'blockjmkbacgjkknlgpkjjiijinjdanf';
  * Helium bundles uBlock Origin. Once it finishes starting up, it reloads
  * any tab that loaded before it was ready, which would interrupt a test.
  * It can't be uninstalled, so wait for that one-time reload on a warm-up
- * tab.
+ * tab. Other browsers skip this.
  */
 async function waitForBundledContentBlocker(browser: Browser, origin: string) {
-  const present = browser.targets().some((t) => t.url().includes(HELIUM_UBLOCK_ID));
+  const present = browser.targets().some((target) => target.url().includes(HELIUM_UBLOCK_ID));
   if (!present) return;
   const page = await browser.newPage();
   let loads = 0;
@@ -253,8 +301,7 @@ async function waitForBundledContentBlocker(browser: Browser, origin: string) {
     loads++;
   });
   await page.goto(`${origin}/elements.html`, { waitUntil: 'load' });
-  const end = Date.now() + 10_000;
-  while (loads < 2 && Date.now() < end) await sleep(100);
+  await poll(() => Promise.resolve(loads >= 2 ? true : undefined), 10_000);
   await page.close();
 }
 
@@ -271,14 +318,11 @@ export async function closePage(
     const dir = join(ROOT, 'test-results');
     await mkdir(dir, { recursive: true });
     const name = task.name.replace(/[^a-z0-9]+/gi, '-').slice(0, 80);
-    const dpr = process.env.DPR ?? '1';
-    await page.screenshot({ path: join(dir, `${name}-dpr${dpr}.png`) }).catch(() => undefined);
+    await page
+      .screenshot({ path: join(dir, `${name}-dpr${process.env.DPR ?? '1'}.png`) })
+      .catch(() => undefined);
   }
   await page.close().catch(() => undefined);
-}
-
-export function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
 }
 
 export interface Image {
@@ -287,14 +331,14 @@ export interface Image {
   pixel(x: number, y: number): [number, number, number];
 }
 
-export function decodePng(buf: Buffer): Image {
-  const png = PNG.sync.read(buf);
+export function decodePng(buffer: Buffer): Image {
+  const png = PNG.sync.read(buffer);
   return {
     width: png.width,
     height: png.height,
-    pixel(x, y) {
-      const i = (png.width * Math.floor(y) + Math.floor(x)) * 4;
-      return [png.data[i] ?? 0, png.data[i + 1] ?? 0, png.data[i + 2] ?? 0];
+    pixel(pixelX, pixelY) {
+      const offset = (png.width * Math.floor(pixelY) + Math.floor(pixelX)) * 4;
+      return [png.data[offset] ?? 0, png.data[offset + 1] ?? 0, png.data[offset + 2] ?? 0];
     },
   };
 }
@@ -309,23 +353,27 @@ export function near(
   expected: [number, number, number],
   tolerance = 12,
 ) {
-  return actual.every((v, i) => Math.abs(v - (expected[i] ?? 0)) <= tolerance);
+  return actual.every((channel, index) => Math.abs(channel - (expected[index] ?? 0)) <= tolerance);
 }
 
 /** Read the image on the clipboard as PNG bytes (needs clipboard-read permission). */
 export async function readClipboardPng(page: Page): Promise<Buffer> {
-  const b64 = await page.evaluate(async () => {
+  const base64 = await page.evaluate(async () => {
     const items = await navigator.clipboard.read();
-    const item = items.find((i) => i.types.includes('image/png'));
-    if (!item)
-      throw new Error(`No image on the clipboard: ${items.flatMap((i) => i.types).join(',')}`);
+    const item = items.find((candidate) => candidate.types.includes('image/png'));
+    if (!item) {
+      throw new Error(
+        `No image on the clipboard: ${items.flatMap((entry) => entry.types).join(',')}`,
+      );
+    }
     const bytes = new Uint8Array(await (await item.getType('image/png')).arrayBuffer());
-    let bin = '';
-    for (let i = 0; i < bytes.length; i += 0x8000)
-      bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-    return btoa(bin);
+    const parts: string[] = [];
+    for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+      parts.push(String.fromCharCode(...bytes.subarray(offset, offset + 0x8000)));
+    }
+    return btoa(parts.join(''));
   });
-  return Buffer.from(b64, 'base64');
+  return Buffer.from(base64, 'base64');
 }
 
 const TYPES: Record<string, string> = {
@@ -336,28 +384,30 @@ const TYPES: Record<string, string> = {
 };
 
 function startServer(): Promise<Server> {
-  const server = createServer((req, res) => {
+  const server = createServer((request, response) => {
     void (async () => {
-      let path = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname);
-      const headers: Record<string, string> = {};
-      if (path.startsWith('/strict/')) {
-        headers['Content-Security-Policy'] = STRICT_CSP;
-        path = path.slice('/strict'.length);
-      }
+      const requested = decodeURIComponent(
+        new URL(request.url ?? '/', 'http://localhost').pathname,
+      );
+      const strict = requested.startsWith('/strict/');
+      const path = strict ? requested.slice('/strict'.length) : requested;
+      const headers: Record<string, string> = strict
+        ? { 'Content-Security-Policy': STRICT_CSP }
+        : {};
       const file = resolve(FIXTURES, `.${path}`);
       if (!file.startsWith(FIXTURES)) {
-        res.writeHead(403).end();
+        response.writeHead(403).end();
         return;
       }
       try {
         const body = await readFile(file);
-        res.writeHead(200, {
+        response.writeHead(200, {
           'Content-Type': TYPES[extname(file)] ?? 'application/octet-stream',
           ...headers,
         });
-        res.end(body);
+        response.end(body);
       } catch {
-        res.writeHead(404).end('not found');
+        response.writeHead(404).end('not found');
       }
     })();
   });

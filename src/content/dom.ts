@@ -6,39 +6,45 @@
 type Attrs = Record<string, string | number | boolean | undefined>;
 type Child = Node | string | null | undefined | false;
 
-export function h<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
+export function buildElement<Tag extends keyof HTMLElementTagNameMap>(
+  tag: Tag,
   attrs: Attrs = {},
   ...children: Child[]
-): HTMLElementTagNameMap[K] {
-  const el = document.createElement(tag);
-  setAttrs(el, attrs);
-  for (const c of children) if (c) el.append(c);
-  return el;
+): HTMLElementTagNameMap[Tag] {
+  const created = document.createElement(tag);
+  setAttrs(created, attrs);
+  created.append(...children.filter(isPresent));
+  return created;
+}
+
+function isPresent(child: Child): child is Node | string {
+  return !!child;
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-export function svg(tag: string, attrs: Attrs = {}, ...children: Child[]): SVGElement {
-  const el = document.createElementNS(SVG_NS, tag);
-  setAttrs(el, attrs);
-  for (const c of children) if (c) el.append(c);
-  return el;
+export function buildSvg(tag: string, attrs: Attrs = {}, ...children: Child[]): SVGElement {
+  const created = document.createElementNS(SVG_NS, tag);
+  setAttrs(created, attrs);
+  created.append(...children.filter(isPresent));
+  return created;
 }
 
-function setAttrs(el: Element, attrs: Attrs) {
-  for (const [k, v] of Object.entries(attrs)) {
-    if (v === undefined || v === false) continue;
-    el.setAttribute(k, v === true ? '' : String(v));
+function setAttrs(target: Element, attrs: Attrs) {
+  const present = Object.entries(attrs).filter(
+    ([, value]) => value !== undefined && value !== false,
+  );
+  for (const [name, value] of present) {
+    target.setAttribute(name, value === true ? '' : String(value));
   }
 }
 
 /** Set several pixel-valued style properties via CSSOM (allowed under any CSP). */
 export function place(
-  el: HTMLElement,
+  target: HTMLElement,
   box: Partial<Record<'left' | 'top' | 'right' | 'bottom' | 'width' | 'height', number | null>>,
 ) {
-  for (const [k, v] of Object.entries(box)) {
-    el.style.setProperty(k, typeof v === 'number' ? `${v}px` : '');
+  for (const [property, value] of Object.entries(box)) {
+    target.style.setProperty(property, typeof value === 'number' ? `${value}px` : '');
   }
 }
