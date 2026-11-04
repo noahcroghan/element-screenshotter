@@ -1,3 +1,10 @@
 allowBuilds:
   # esbuild's postinstall only verifies its platform-specific binary.
   esbuild: true
+
+# Dev-tooling advisories (nothing here ships in the extension). Remove each
+# override once the parent package depends on a fixed version itself.
+overrides:
+  katex@<0.18.2: ^0.18.2
+  re2js@<2.8.7: ^2.8.7
+  minimatch@<11.0.1: ^11.0.1
