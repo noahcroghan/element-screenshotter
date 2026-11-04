@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Fixture: elements</title>
+    <link rel="stylesheet" href="elements.css" />
+  </head>
+  <body>
+    <header id="fixed-header">Fixed header</header>
+
+    <section id="section">
+      <h2 id="heading">A heading the smart picker skips</h2>
+      <div id="card">
+        <div id="inner"></div>
+      </div>
+      <div id="sibling"></div>
+    </section>
+
+    <div id="tall">
+      <div id="tall-top"></div>
+      <div id="tall-bottom"></div>
+    </div>
+
+    <div id="shadow-host">
+      <template shadowrootmode="open">
+        <link rel="stylesheet" href="shadow.css" />
+        <div id="in-shadow"></div>
+      </template>
+    </div>
+
+    <iframe id="frame" src="frame.html" title="Same-origin frame"></iframe>
+
+    <div id="page-bottom"></div>
+  </body>
+</html>

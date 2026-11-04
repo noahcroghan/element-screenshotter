@@ -1,0 +1,15 @@
+html,
+body {
+  margin: 0;
+  background: #fff;
+}
+
+/* (20, 20) inside the frame, so (70, 720) on the page */
+#in-frame {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  width: 200px;
+  height: 100px;
+  background: #800080;
+}
