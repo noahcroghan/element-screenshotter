@@ -2,6 +2,8 @@
 
 How to build, run, and test the extension, and what to know before changing it. For how it works inside, read [design-notes.md](design-notes.md).
 
+Planned work is tracked as issues on the [project board](https://github.com/users/noahcroghan/projects/5), grouped by status and tagged with a priority (P1 to P3) and an area. Issues labelled `blocked` say what they are waiting for.
+
 ## Quick start
 
 You need [Node.js](https://nodejs.org/) 22.12 or newer and [pnpm](https://pnpm.io/installation) 11. `corepack enable` also works if your Node.js ships a recent corepack. Some Linux distributions package an old one that can't run pnpm 11; use pnpm's installer there.
