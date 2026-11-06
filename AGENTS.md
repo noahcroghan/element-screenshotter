@@ -4,12 +4,14 @@ Human-facing docs come first: [README.md](README.md) for users, [docs/developmen
 
 ## Ground rules
 
-- The GitHub repository is **private**. Never change its visibility, and don't publish anywhere else (web stores, package registries) unless the owner asks.
+- The GitHub repository is **private**. Never change its visibility, and don't publish anywhere else (web stores, package registries) unless the owner asks. Ask before any other outward-facing action (accounts, secrets, settings) your task doesn't name.
+- Work is tracked as issues on the repo's GitHub Project board. Close or update the issues you work on.
 - Use **pnpm**, never npm or yarn.
 - The README must keep saying that the project is AI-generated.
 - Follow YAGNI. Clone Firefox's behaviour and fix real problems; don't add settings or features nobody asked for.
 - Write prose that is plain, concise, and ASCII-only.
-- Make small commits with Conventional Commit messages; the husky hook runs commitlint. Run `pnpm check` before every commit, and `pnpm test:e2e` when behaviour changes.
+- Make small commits with Conventional Commit messages; the husky hook runs commitlint. Run `pnpm check` before every commit, and `pnpm test:e2e` when behaviour changes. After pushing, watch CI until it passes.
+- Finish with a short report: what changed, how you verified it, and anything the owner still has to do.
 
 ## Things that cost time before
 
