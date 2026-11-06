@@ -185,8 +185,46 @@ export class Harness {
   /** Click the toolbar button, exactly as a user would (grants activeTab). */
   async start(page: Page) {
     await activate(page);
+    const clicksBefore = await this.#clickCount();
+    await page.triggerExtensionAction(this.extension);
+    const opened = await this.waitForState(page, 'crosshairs', 5000).catch(() => null);
+    if (opened) return;
+    // A freshly started browser occasionally drops the very first toolbar
+    // click. Retry only if the extension never saw the click; a click that
+    // arrived but didn't open the overlay is a real failure.
+    if ((await this.#clickCount()) !== clicksBefore) {
+      await this.waitForState(page, 'crosshairs', 25_000);
+      return;
+    }
+    console.warn('[harness] the toolbar click never reached the extension; clicking again');
+    await activate(page);
     await page.triggerExtensionAction(this.extension);
     await this.waitForState(page, 'crosshairs');
+  }
+
+  /**
+   * How many toolbar clicks the service worker has received. The counter is
+   * attached from the test side (the extension has no such hook) and is
+   * re-attached if the service worker restarted.
+   */
+  async #clickCount(): Promise<number> {
+    const target = await this.browser.waitForTarget(
+      (candidate) =>
+        candidate.type() === TargetType.SERVICE_WORKER &&
+        candidate.url().includes(this.extension.id),
+    );
+    const worker = await target.worker();
+    if (!worker) throw new Error('The extension service worker is not running');
+    return worker.evaluate(() => {
+      const counter = globalThis as { __harnessClicks?: number };
+      if (counter.__harnessClicks === undefined) {
+        counter.__harnessClicks = 0;
+        chrome.action.onClicked.addListener(() => {
+          counter.__harnessClicks = (counter.__harnessClicks ?? 0) + 1;
+        });
+      }
+      return counter.__harnessClicks;
+    });
   }
 
   async snapshot(page: Page): Promise<Snapshot | null> {
