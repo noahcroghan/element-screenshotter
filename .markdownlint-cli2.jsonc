@@ -6,6 +6,15 @@
     // Allow <kbd> for keyboard shortcuts.
     "MD033": { "allowed_elements": ["kbd", "br", "b", "i"] },
   },
-  "globs": ["**/*.md"],
+  // `**` skips dot folders, so .github is listed on its own.
+  "globs": ["**/*.md", ".github/**/*.md"],
+  "overrides": [
+    {
+      // GitHub prefills the pull request body with this; it has no title.
+      "filter": [".github/pull_request_template.md"],
+      "config": { "MD041": false },
+      "combine": "merge",
+    },
+  ],
   "ignores": ["node_modules/**", "dist/**", "artifacts/**", "test-results/**"],
 }

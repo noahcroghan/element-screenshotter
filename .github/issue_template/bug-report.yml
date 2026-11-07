@@ -1,0 +1,65 @@
+name: Bug report
+description: Something doesn't work, or works differently from Firefox Screenshots.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please check the [Limitations](https://github.com/noahcroghan/element-screenshotter#limitations) in the README first.
+        For security problems, use the [security policy](https://github.com/noahcroghan/element-screenshotter/security/policy) instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open https://example.com/
+        2. Click the toolbar button
+        3. Hover the main heading and click
+        4. Click Download
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Page URL
+      description: The page where it happens, if it is public. Otherwise describe the page in the steps.
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      description: From the browser's About page.
+      placeholder: Chrome 156
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - ChromeOS
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Extension version
+      description: Shown on the extension's card at chrome://extensions.
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, the browser's display scale, or errors from the service worker console (chrome://extensions > the extension's card > service worker).
