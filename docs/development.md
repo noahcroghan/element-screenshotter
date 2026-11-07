@@ -162,7 +162,7 @@ Some features are free only for public repositories. The workflows check `github
 | Release provenance (attestation) | Step skipped                | Zip and `SHA256SUMS.txt` attested |
 | Pushes to `main` and releases    | Every OS (no change)        | Every OS (no change)              |
 
-A skipped job still counts as passing.
+A skipped job still counts as passing. The settings that have to be changed by hand on the day are in [going-public.md](going-public.md).
 
 ## Releasing
 
