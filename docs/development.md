@@ -144,7 +144,22 @@ TypeScript 7 (the Go-based compiler) is what `tsc` runs, so `pnpm typecheck` get
 - **Check.** Typecheck, ESLint, markdownlint, Prettier, unit tests, and a packaged build, on Linux, Windows, and macOS.
 - **End-to-end.** The browser tests in Chrome for Testing on Linux, Windows, and macOS. Linux also runs at device pixel ratios 1.25 and 2. If a test fails, its page screenshot is uploaded.
 
-Pull requests run the Linux jobs only, to save runner minutes. Pushes to `main` and releases run on every OS. Actions are pinned to commit SHAs. Dependabot updates them and the npm dependencies weekly, using Conventional Commit messages.
+[`.github/workflows/codeql.yml`](../.github/workflows/codeql.yml) runs CodeQL code scanning on JavaScript and TypeScript, on pushes to `main`, pull requests, and weekly.
+
+Actions are pinned to commit SHAs. Dependabot updates them and the npm dependencies weekly, using Conventional Commit messages.
+
+### Private or public
+
+Some features are free only for public repositories. The workflows check `github.event.repository.private` and switch them on by themselves when the repository goes public, so the workflows don't need editing then.
+
+| Feature                          | While private               | Once public                       |
+| -------------------------------- | --------------------------- | --------------------------------- |
+| Pull request jobs                | Linux only, to save minutes | Linux, Windows, and macOS         |
+| CodeQL                           | Job skipped                 | Runs, plus once when made public  |
+| Release provenance (attestation) | Step skipped                | Zip and `SHA256SUMS.txt` attested |
+| Pushes to `main` and releases    | Every OS (no change)        | Every OS (no change)              |
+
+A skipped job still counts as passing.
 
 ## Releasing
 
@@ -161,5 +176,11 @@ Releases are built by [`.github/workflows/release.yml`](../.github/workflows/rel
    ```
 
 The workflow refuses a tag that doesn't match `package.json`. Tags with a hyphen (`v1.1.0-beta.1`) become pre-releases.
+
+Once the repository is public, each release also gets a signed [build provenance attestation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations). To check a download:
+
+```sh
+gh attestation verify element-screenshotter-x.y.z.zip --repo noahcroghan/element-screenshotter
+```
 
 For a local build to share without releasing, run `pnpm package` and use `artifacts/element-screenshotter-<version>.zip`.

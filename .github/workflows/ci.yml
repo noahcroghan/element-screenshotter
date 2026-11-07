@@ -51,8 +51,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Pull requests run on Linux only, to save runner minutes.
-        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest"]' || '["ubuntu-latest", "windows-latest", "macos-latest"]') }}
+        # While the repository is private, pull requests run on Linux only to
+        # save runner minutes. Public repositories get standard runners free.
+        os: ${{ fromJSON(github.event_name == 'pull_request' && github.event.repository.private && '["ubuntu-latest"]' || '["ubuntu-latest", "windows-latest", "macos-latest"]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
@@ -77,8 +78,9 @@ jobs:
     strategy:
       fail-fast: false
       # Fractional scales catch rounding seams when stitching, so Linux runs
-      # several. The tests download Chrome for Testing themselves.
-      matrix: ${{ fromJSON(github.event_name == 'pull_request' && '{"include":[{"os":"ubuntu-latest","dpr":"1"},{"os":"ubuntu-latest","dpr":"1.25"},{"os":"ubuntu-latest","dpr":"2"}]}' || '{"include":[{"os":"ubuntu-latest","dpr":"1"},{"os":"ubuntu-latest","dpr":"1.25"},{"os":"ubuntu-latest","dpr":"2"},{"os":"windows-latest","dpr":"1"},{"os":"macos-latest","dpr":"1"}]}') }}
+      # several. The tests download Chrome for Testing themselves. Private
+      # pull requests run Linux only, as in the check job.
+      matrix: ${{ fromJSON(github.event_name == 'pull_request' && github.event.repository.private && '{"include":[{"os":"ubuntu-latest","dpr":"1"},{"os":"ubuntu-latest","dpr":"1.25"},{"os":"ubuntu-latest","dpr":"2"}]}' || '{"include":[{"os":"ubuntu-latest","dpr":"1"},{"os":"ubuntu-latest","dpr":"1.25"},{"os":"ubuntu-latest","dpr":"2"},{"os":"windows-latest","dpr":"1"},{"os":"macos-latest","dpr":"1"}]}') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
