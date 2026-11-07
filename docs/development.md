@@ -123,7 +123,7 @@ Google Chrome 137 and newer ignores `--load-extension`. Puppeteer loads the exte
 - Markdown files are named after their top heading in kebab case: `# Design notes` lives in `design-notes.md`. GitHub finds `contributing.md` and `security.md` in lowercase too. The exceptions are names that tools look for:
   - `README.md` and `AGENTS.md`, for GitHub and coding agents.
   - `.github/pull_request_template.md`, which GitHub needs under that name. It has no title, because GitHub pastes it into the pull request body.
-  - The `.github/ISSUE_TEMPLATE/` folder, which GitHub ignores when it is spelled in lowercase (tested). The forms inside it are YAML, named in kebab case.
+  - The `.github/ISSUE_TEMPLATE/` folder. GitHub only matches template file names case-insensitively, not the folder ([github/docs#19655](https://github.com/github/docs/issues/19655)). The forms inside it are YAML, named in kebab case.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `test:`, `docs:`, `ci:`, `chore:`, and so on), checked by [commitlint](https://commitlint.js.org/) with `@commitlint/config-conventional`. `pnpm install` sets up a [husky](https://typicode.github.io/husky/) `commit-msg` hook that rejects a bad message before the commit is made. CI checks every pushed commit too.
 
 ## Two TypeScript versions, on purpose
