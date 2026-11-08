@@ -15,7 +15,7 @@ The first release. Element Screenshotter brings Firefox's screenshot tool to Chr
 - **Save visible** and **Save full page**, with a preview before you copy or download.
 - Elements and regions larger than the window are captured by scrolling and stitching, without repeated headers.
 - Copy to the clipboard or download as PNG, named like Firefox's screenshots.
-- <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> shortcut and a **Take Screenshot** context menu item.
+- `Ctrl+Shift+S` shortcut and a **Take Screenshot** context menu item.
 - A setting for element detection: smart (like Firefox) or exact.
 - Works on pages with strict Content Security Policies and Trusted Types, and on right-to-left pages.
 

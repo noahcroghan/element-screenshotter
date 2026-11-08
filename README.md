@@ -24,10 +24,10 @@ To screenshot local files (`file://` pages), open the extension's details and tu
 Start a screenshot in any of these ways:
 
 - Click the toolbar button.
-- Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> (<kbd>Command</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> on a Mac).
+- Press `Ctrl+Shift+S` (`Command+Shift+S` on a Mac).
 - Right-click the page and choose **Take Screenshot**.
 
-The page dims and the overlay waits for you. Press <kbd>Esc</kbd> or click the toolbar button again to leave without taking anything.
+The page dims and the overlay waits for you. Press `Esc` or click the toolbar button again to leave without taking anything.
 
 ### Capture an element
 
@@ -35,12 +35,12 @@ Move the pointer over the page. The element under it is outlined, with a label s
 
 By default the picker is smart, the way Firefox's is. It skips headings in favour of the section they head, prefers whole articles, and ignores wrappers bigger than the screen. When it doesn't pick what you want, use the arrow keys:
 
-| Key                                            | Moves the highlight to            |
-| ---------------------------------------------- | --------------------------------- |
-| <kbd>Up Arrow</kbd>                            | the parent element                |
-| <kbd>Down Arrow</kbd>                          | back down to a child element      |
-| <kbd>Left Arrow</kbd> / <kbd>Right Arrow</kbd> | the previous or next sibling      |
-| <kbd>Enter</kbd>                               | (selects the highlighted element) |
+| Key                          | Moves the highlight to            |
+| ---------------------------- | --------------------------------- |
+| `Up Arrow`                   | the parent element                |
+| `Down Arrow`                 | back down to a child element      |
+| `Left Arrow` / `Right Arrow` | the previous or next sibling      |
+| `Enter`                      | (selects the highlighted element) |
 
 This works inside shadow DOM and inside frames from the same site. A frame from another site can only be captured as a whole.
 
@@ -52,9 +52,9 @@ Press and drag to draw a rectangle. Once something is selected you can:
 
 - drag the handles on the edges and corners to resize it
 - drag the middle to move it
-- use the keyboard: <kbd>Tab</kbd> to the selection and press the arrow keys to move it, or <kbd>Tab</kbd> to a corner handle and press them to resize. Hold <kbd>Shift</kbd> to move 10 pixels at a time.
+- use the keyboard: `Tab` to the selection and press the arrow keys to move it, or `Tab` to a corner handle and press them to resize. Hold `Shift` to move 10 pixels at a time.
 
-Click outside the selection, or press <kbd>Esc</kbd>, to start over.
+Click outside the selection, or press `Esc`, to start over.
 
 ### Save the visible area or the full page
 
@@ -69,12 +69,12 @@ A preview opens with **Copy**, **Download**, **Retry**, and **Cancel**.
 
 With a selection or preview on screen:
 
-| Action                           | Button       | Shortcut                     |
-| -------------------------------- | ------------ | ---------------------------- |
-| Copy the image to the clipboard  | **Copy**     | <kbd>Ctrl</kbd>+<kbd>C</kbd> |
-| Save it to your Downloads folder | **Download** | <kbd>Ctrl</kbd>+<kbd>S</kbd> |
+| Action                           | Button       | Shortcut |
+| -------------------------------- | ------------ | -------- |
+| Copy the image to the clipboard  | **Copy**     | `Ctrl+C` |
+| Save it to your Downloads folder | **Download** | `Ctrl+S` |
 
-On a Mac, use <kbd>Command</kbd> instead of <kbd>Ctrl</kbd>. Whichever you used last is focused next time, so <kbd>Enter</kbd> repeats it.
+On a Mac, use `Command` instead of `Ctrl`. Whichever you used last is focused next time, so `Enter` repeats it.
 
 Screenshots are saved as PNG files named like Firefox's: `Screenshot 2025-01-31 at 14-05-09 Page title.png`. If your browser is set to ask where to save each file, it will ask for these too.
 
