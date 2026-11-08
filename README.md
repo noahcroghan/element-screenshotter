@@ -11,7 +11,7 @@ It works in Chrome, Edge, Brave, Vivaldi, Helium, and other Chromium-based brows
 
 The extension isn't in any web store, so you load it yourself:
 
-1. Download `element-screenshotter-<version>.zip` from the [latest release](../../releases/latest) and unzip it. Or [build it from source](docs/development.md#quick-start), which gives you a `dist` folder. Either way you need a folder containing `manifest.json`.
+1. Download `element-screenshotter-[version].zip` from the [latest release](../../releases/latest) and unzip it. Or [build it from source](docs/development.md#quick-start), which gives you a `dist` folder. Either way you need a folder containing `manifest.json`.
 2. Open your browser's extensions page (`chrome://extensions`, `edge://extensions`, and so on).
 3. Turn on **Developer mode**.
 4. Click **Load unpacked** and pick that folder. Keep the folder where it is: the browser loads the extension from it each time it starts.
@@ -120,4 +120,4 @@ Read [contributing.md](contributing.md) first. [docs/development.md](docs/develo
 
 ## License
 
-[Mozilla Public License 2.0](LICENSE), the same license as the Firefox code it borrows from.
+[Mozilla Public License 2.0](LICENSE)
