@@ -1,10 +1,11 @@
 {
+  "$schema": "./node_modules/markdownlint-cli2/schema/markdownlint-cli2-config-schema.json",
   "config": {
     "default": true,
-    // Prose is wrapped by hand or not at all; tables and URLs run long.
+    // Tables frequently cause long line lengths
     "MD013": false,
     // Allow <kbd> for keyboard shortcuts.
-    "MD033": { "allowed_elements": ["kbd", "br", "b", "i"] },
+    "MD033": { "allowed_elements": ["kbd", "br", "b", "i"] }
   },
   // `**` skips dot folders, so .github is listed on its own.
   "globs": ["**/*.md", ".github/**/*.md"],
@@ -13,8 +14,8 @@
       // GitHub prefills the pull request body with this; it has no title.
       "filter": [".github/pull_request_template.md"],
       "config": { "MD041": false },
-      "combine": "merge",
-    },
+      "combine": "merge"
+    }
   ],
-  "ignores": ["node_modules/**", "dist/**", "artifacts/**", "test-results/**"],
+  "ignores": ["node_modules/**", "dist/**", "artifacts/**", "test-results/**"]
 }
