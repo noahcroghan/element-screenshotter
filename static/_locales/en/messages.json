@@ -95,6 +95,12 @@
   "optExact": {
     "message": "Exact. Always starts from the element directly under the pointer."
   },
+  "optElementLabel": {
+    "message": "Element label"
+  },
+  "optShowElementLabel": {
+    "message": "Show the highlighted element's tag, id, classes, and size. Firefox doesn't."
+  },
   "optShortcut": {
     "message": "Keyboard shortcut"
   },

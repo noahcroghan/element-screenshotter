@@ -2,6 +2,14 @@
 
 All notable changes to this project are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+Changes since the last release.
+
+### Changed
+
+- The label with the highlighted element's tag, id, classes, and size is now off by default, as in Firefox. Turn it on with the new **Element label** setting.
+
 ## [1.0.0] - 2026-11-05
 
 The first release. Element Screenshotter brings Firefox's screenshot tool to Chromium browsers.

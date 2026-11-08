@@ -7,10 +7,16 @@ export interface Settings {
    * "exact" always starts from the element directly under the cursor.
    */
   elementDetection: ElementDetection;
+  /**
+   * Show a label with the highlighted element's tag, id, classes, and size.
+   * Off by default, like Firefox.
+   */
+  showElementLabel: boolean;
 }
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   elementDetection: 'smart',
+  showElementLabel: false,
 });
 
 /** Coerce whatever is in storage into a valid Settings object. */
@@ -22,6 +28,10 @@ export function normalizeSettings(raw: unknown): Settings {
       detection === 'smart' || detection === 'exact'
         ? detection
         : DEFAULT_SETTINGS.elementDetection,
+    showElementLabel:
+      typeof stored.showElementLabel === 'boolean'
+        ? stored.showElementLabel
+        : DEFAULT_SETTINGS.showElementLabel,
   };
 }
 

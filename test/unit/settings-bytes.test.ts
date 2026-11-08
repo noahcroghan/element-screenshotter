@@ -13,13 +13,15 @@ describe('normalizeSettings', () => {
   });
 
   test('rejects invalid values', () => {
-    expect(normalizeSettings({ elementDetection: 'magic' })).toEqual(DEFAULT_SETTINGS);
+    expect(normalizeSettings({ elementDetection: 'magic', showElementLabel: 'yes' })).toEqual(
+      DEFAULT_SETTINGS,
+    );
   });
 
   test('keeps valid values and drops unknown keys', () => {
-    expect(normalizeSettings({ elementDetection: 'exact', format: 'jpeg' })).toEqual({
-      elementDetection: 'exact',
-    });
+    expect(
+      normalizeSettings({ elementDetection: 'exact', showElementLabel: true, format: 'jpeg' }),
+    ).toEqual({ elementDetection: 'exact', showElementLabel: true });
   });
 });
 

@@ -273,4 +273,21 @@ describe('settings', () => {
     await hover(300, 100);
     expect((await harness.snapshot(page))?.hover?.label).toBe('h2#heading');
   });
+
+  test('the element label is hidden by default, like Firefox', async () => {
+    await open();
+    await harness.start(page);
+    await hover(150, 180);
+    const snap = await harness.snapshot(page);
+    expect(snap?.hover?.label).toBe('div#inner');
+    expect(snap?.labelShown).toBe(false);
+  });
+
+  test('the element label setting shows the label', async () => {
+    await worker.evaluate(() => chrome.storage.sync.set({ showElementLabel: true }));
+    await open();
+    await harness.start(page);
+    await hover(150, 180);
+    expect((await harness.snapshot(page))?.labelShown).toBe(true);
+  });
 });

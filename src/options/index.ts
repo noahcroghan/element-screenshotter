@@ -4,6 +4,12 @@ import { loadSettings, saveSettings, type Settings } from '../shared/settings';
 const form = document.getElementById('form') as HTMLFormElement;
 const status = document.getElementById('status') as HTMLParagraphElement;
 const detection = form.elements.namedItem('elementDetection') as RadioNodeList;
+const showLabel = form.elements.namedItem('showElementLabel') as HTMLInputElement;
+
+function showSettings(settings: Settings) {
+  detection.value = settings.elementDetection;
+  showLabel.checked = settings.showElementLabel;
+}
 
 function localizePage() {
   document.title = localize('optionsTitle');
@@ -16,8 +22,9 @@ let statusTimer = 0;
 async function persist() {
   const saved = await saveSettings({
     elementDetection: detection.value as Settings['elementDetection'],
+    showElementLabel: showLabel.checked,
   });
-  detection.value = saved.elementDetection;
+  showSettings(saved);
   status.textContent = localize('optSaved');
   clearTimeout(statusTimer);
   statusTimer = window.setTimeout(() => (status.textContent = ''), 1500);
@@ -33,7 +40,7 @@ async function showShortcut() {
 }
 
 localizePage();
-detection.value = (await loadSettings()).elementDetection;
+showSettings(await loadSettings());
 void showShortcut();
 
 form.addEventListener('change', () => void persist());

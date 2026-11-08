@@ -47,6 +47,8 @@ export const STRICT_CSP =
 export interface Snapshot {
   state: string;
   hover: { label: string; rect: Rect | null } | null;
+  /** Whether the element label is visible on screen. */
+  labelShown: boolean;
   selection: Rect | null;
   selectedElement: string | null;
 }

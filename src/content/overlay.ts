@@ -199,11 +199,13 @@ export class Overlay {
   /** Read-only snapshot for tests and debugging (isolated world only). */
   snapshot() {
     const hoverRect = this.#hoverElement ? topLevelRect(this.#hoverElement) : null;
+    const labelBox = this.#ui.hoverLabel.getBoundingClientRect();
     return {
       state: this.#state,
       hover: this.#hoverElement
         ? { label: describeElement(this.#hoverElement), rect: hoverRect }
         : null,
+      labelShown: labelBox.width > 1 && labelBox.height > 1,
       selection: this.#state === 'crosshairs' ? null : this.#selectionRect(),
       selectedElement: this.#selectedElement ? describeElement(this.#selectedElement) : null,
     };
@@ -251,8 +253,11 @@ export class Overlay {
     );
 
     const hover = buildElement('div', { id: 'hover', hidden: true });
+    // With the label turned off it stays in the DOM, visually hidden, so
+    // screen readers still announce the element.
     const hoverLabel = buildElement('div', {
       id: 'hover-label',
+      class: this.#settings.showElementLabel ? undefined : 'visually-hidden',
       hidden: true,
       'aria-live': 'polite',
     });

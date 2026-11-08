@@ -38,12 +38,15 @@ test('the options page is localised and saves changes', async () => {
   await page.waitForFunction(() => document.querySelector('#shortcut')?.textContent);
   expect(await page.$eval('#shortcut', (shortcut) => shortcut.textContent)).toMatch(/S$/);
 
+  expect(await page.$eval('input[name="showElementLabel"]', (box) => box.checked)).toBe(false);
   await page.click('input[name="elementDetection"][value="exact"]');
+  await page.click('input[name="showElementLabel"]');
   await sleep(200);
   const stored = await worker.evaluate(() => chrome.storage.sync.get(null));
-  expect(stored).toEqual({ elementDetection: 'exact' });
+  expect(stored).toEqual({ elementDetection: 'exact', showElementLabel: true });
 
   await page.reload();
   expect(await page.$eval('input[value="exact"]', (radio) => radio.checked)).toBe(true);
+  expect(await page.$eval('input[name="showElementLabel"]', (box) => box.checked)).toBe(true);
   await page.close();
 });

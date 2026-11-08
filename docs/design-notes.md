@@ -142,7 +142,10 @@ On top of that, we add:
   `chrome.dom.openOrClosedShadowRoot`.
 - **Same-origin iframes** are entered. Cross-origin iframes are selected as a
   whole.
-- A **label** showing the element's tag, id, and classes plus its size.
+- An optional **label** (setting, off by default like Firefox) showing the
+  element's tag, id, and classes plus its size. When it is off, the label
+  stays in the DOM, visually hidden, so its live region still tells screen
+  readers which element is highlighted.
 
 ## Decisions and open questions
 

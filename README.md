@@ -31,7 +31,7 @@ The page dims and the overlay waits for you. Press `Esc` or click the toolbar bu
 
 ### Capture an element
 
-Move the pointer over the page. The element under it is outlined, with a label showing its tag, id, classes, and size, for example `div#main.card 320 x 200`. Click to select it.
+Move the pointer over the page. The element under it is outlined. Click to select it. To also see a label with its tag, id, classes, and size, for example `div#main.card 320 x 200`, turn on **Element label** in the settings.
 
 By default the picker is smart, the way Firefox's is. It skips headings in favour of the section they head, prefers whole articles, and ignores wrappers bigger than the screen. When it doesn't pick what you want, use the arrow keys:
 
@@ -83,6 +83,7 @@ Screenshots are saved as PNG files named like Firefox's: `Screenshot 2025-01-31 
 Right-click the toolbar button and choose **Options**.
 
 - **Element detection.** Smart (the default, like Firefox), or Exact, which always starts from the element directly under the pointer.
+- **Element label.** Shows the highlighted element's tag, id, classes, and size next to it. Off by default, like Firefox. Screen readers announce the element either way.
 - **Keyboard shortcut.** Shows the current shortcut, with a button to open the browser's shortcut page where you can change it.
 
 ## Permissions and privacy
