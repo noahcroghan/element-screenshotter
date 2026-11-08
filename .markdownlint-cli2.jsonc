@@ -5,7 +5,7 @@
     // Tables frequently cause long line lengths
     "MD013": false
   },
-  "customRules": ["./scripts/markdownlint-intro-before-subheading.mjs"],
+  "customRules": ["./scripts/markdownlint-intro-before-subheading.ts"],
   // `**` skips dot folders, so .github is listed on its own.
   "globs": ["**/*.md", ".github/**/*.md"],
   "overrides": [

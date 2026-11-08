@@ -1,10 +1,11 @@
 // Custom markdownlint rule: a heading followed straight away by a deeper
 // heading needs some text in between, e.g. "# Security" then "## Scope".
-// markdownlint has no built-in rule for this. JavaScript, because
-// markdownlint-cli2 imports custom rules with Node's own loader.
+// markdownlint has no built-in rule for this. `pnpm lint:md` runs
+// markdownlint-cli2 through tsx so it can load this file.
 
-/** @param {import('markdownlint').MicromarkToken} token */
-function headingLevel(token) {
+import type { MicromarkToken, Rule } from 'markdownlint';
+
+function headingLevel(token: MicromarkToken): number {
   if (token.type === 'atxHeading') {
     return token.children.find((child) => child.type === 'atxHeadingSequence')?.text.length ?? 0;
   }
@@ -12,13 +13,10 @@ function headingLevel(token) {
   return underline?.text.startsWith('=') ? 1 : 2;
 }
 
-/** @type {Set<string>} */
-const blank = new Set(['lineEnding', 'lineEndingBlank', 'linePrefix']);
-/** @type {Set<string>} */
-const headings = new Set(['atxHeading', 'setextHeading']);
+const blank = new Set<string>(['lineEnding', 'lineEndingBlank', 'linePrefix']);
+const headings = new Set<string>(['atxHeading', 'setextHeading']);
 
-/** @type {import('markdownlint').Rule} */
-export default {
+const introBeforeSubheading: Rule = {
   names: ['intro-before-subheading'],
   description: 'Text between a heading and its first subheading',
   tags: ['headings'],
@@ -41,3 +39,5 @@ export default {
     });
   },
 };
+
+export default introBeforeSubheading;

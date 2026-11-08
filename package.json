@@ -17,7 +17,7 @@
     "icons": "tsx scripts/icons.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "lint:md": "markdownlint-cli2",
+    "lint:md": "tsx node_modules/markdownlint-cli2/markdownlint-cli2-bin.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run --project unit",
