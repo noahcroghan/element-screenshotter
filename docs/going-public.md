@@ -20,7 +20,7 @@ The commands use the [GitHub CLI](https://cli.github.com/) from a clone of the r
 
 - [ ] Read through issues, pull requests (open and closed), and release notes for anything private. Their comments become public too. (Checked on 2026-11-07, issues and pull requests #1 to #18: nothing private.)
 - [ ] Remember that Actions run logs and uploaded artifacts become public. The workflows use no secrets, and the e2e artifacts only show test pages.
-- [ ] Check that the README, [contributing.md](../contributing.md), and [security.md](../security.md) still match how the project works.
+- [ ] Check that the README, [CONTRIBUTING.md](../CONTRIBUTING.md), and [SECURITY.md](../SECURITY.md) still match how the project works.
 - [ ] Open **New issue** and check that the chooser lists **Bug report**, **Feature request**, and **Report a security vulnerability**. Then open any compare page, for example <https://github.com/noahcroghan/element-screenshotter/compare>, pick a branch, and check that the pull request body is prefilled from the template.
 
 ## Flip
@@ -50,7 +50,7 @@ The commands use the [GitHub CLI](https://cli.github.com/) from a clone of the r
     - `Analyze (JavaScript and TypeScript)`
   - Click **Create**.
 - [ ] **Settings > Advanced Security** (<https://github.com/noahcroghan/element-screenshotter/settings/security_analysis>):
-  - **Private vulnerability reporting**: Enable. security.md and the issue chooser link to it.
+  - **Private vulnerability reporting**: Enable. SECURITY.md and the issue chooser link to it.
   - **Dependency graph**: on (it is automatic for public repositories).
   - **Dependabot alerts** and **Dependabot security updates**: on. Both were already on while private.
   - **Code scanning**: leave **CodeQL analysis** on "Not set up" or "Advanced". Don't choose **Default** setup: `.github/workflows/codeql.yml` is the advanced setup, and GitHub rejects uploads from it while default setup is on.

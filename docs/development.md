@@ -120,10 +120,7 @@ Google Chrome 137 and newer ignores `--load-extension`. Puppeteer loads the exte
 - Keep `src/shared/` free of DOM and `chrome.*` calls where possible, so it can be unit tested.
 - Every UI string goes through `localize()` and lives in `static/_locales/en/messages.json`.
 - Files adapted from Firefox keep the MPL header and say what they're adapted from.
-- Markdown files are named after their top heading in kebab case: `# Design notes` lives in `design-notes.md`. GitHub finds `contributing.md` and `security.md` in lowercase too. The exceptions are names that tools look for:
-  - `README.md` and `AGENTS.md`, for GitHub and coding agents.
-  - `.github/pull_request_template.md`, which GitHub needs under that name. It has no title, because GitHub pastes it into the pull request body.
-  - The `.github/ISSUE_TEMPLATE/` folder. GitHub only matches template file names case-insensitively, not the folder ([github/docs#19655](https://github.com/github/docs/issues/19655)). The forms inside it are YAML, named in kebab case.
+- Markdown files in `docs/` are named after their top heading in kebab case: `# Design notes` lives in `design-notes.md`. Elsewhere, Markdown files use the uppercase names that GitHub and other tools look for: `README.md`, `AGENTS.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, and `.github/PULL_REQUEST_TEMPLATE.md`. The pull request template has no title, because GitHub pastes it into the pull request body. The `.github/ISSUE_TEMPLATE/` folder must be uppercase too: GitHub only matches template file names case-insensitively, not the folder ([github/docs#19655](https://github.com/github/docs/issues/19655)). The forms inside it are YAML, named in kebab case.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `test:`, `docs:`, `ci:`, `chore:`, and so on), checked by [commitlint](https://commitlint.js.org/) with `@commitlint/config-conventional`. `pnpm install` sets up a [husky](https://typicode.github.io/husky/) `commit-msg` hook that rejects a bad message before the commit is made. CI checks every pushed commit too.
 
 ## Two TypeScript versions, on purpose
@@ -166,10 +163,10 @@ A skipped job still counts as passing. The settings that have to be changed by h
 
 ## Releasing
 
-Releases are built by [`.github/workflows/release.yml`](../.github/workflows/release.yml) when a version tag is pushed. It runs the whole CI pipeline first, then publishes a GitHub release with the zip and a `SHA256SUMS.txt`, using that version's `changelog.md` section as the notes.
+Releases are built by [`.github/workflows/release.yml`](../.github/workflows/release.yml) when a version tag is pushed. It runs the whole CI pipeline first, then publishes a GitHub release with the zip and a `SHA256SUMS.txt`, using that version's `CHANGELOG.md` section as the notes.
 
 1. Bump `version` in `package.json`. The build copies it into the manifest.
-2. Add a `## [x.y.z] - YYYY-MM-DD` section to `changelog.md`. The release fails without one.
+2. Add a `## [x.y.z] - YYYY-MM-DD` section to `CHANGELOG.md`. The release fails without one.
 3. Commit (`chore: release x.y.z`) and push to `main`. Wait for CI to pass.
 4. Tag and push the tag:
 

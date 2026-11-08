@@ -5,7 +5,7 @@ Thanks for helping. Please note that this project is AI-generated: an AI coding 
 ## Before you start
 
 - **Bugs and ideas** go in [issues](../../issues/new/choose). The forms ask for what's needed to reproduce a bug.
-- **Security problems** must not go in public issues. See the [security policy](security.md).
+- **Security problems** must not go in public issues. See the [security policy](SECURITY.md).
 - **Scope.** The goal is Firefox Screenshots' behaviour in Chromium browsers. Bug fixes and closer matches to Firefox are welcome. Features or settings that Firefox doesn't have usually aren't, so open an issue to discuss those before writing code.
 
 ## Making a change

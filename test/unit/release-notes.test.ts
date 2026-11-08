@@ -38,6 +38,6 @@ describe('extractNotes', () => {
 
   test('the real changelog has notes for the current version', async () => {
     const pkg = JSON.parse(await readFile('package.json', 'utf8')) as { version: string };
-    expect(extractNotes(await readFile('changelog.md', 'utf8'), pkg.version)).toBeTruthy();
+    expect(extractNotes(await readFile('CHANGELOG.md', 'utf8'), pkg.version)).toBeTruthy();
   });
 });

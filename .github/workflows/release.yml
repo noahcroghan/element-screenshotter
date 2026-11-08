@@ -1,7 +1,7 @@
 name: Release
 
 # Push a tag like v1.2.3 to publish a release. The tag must match the version
-# in package.json, and changelog.md must have a section for it.
+# in package.json, and CHANGELOG.md must have a section for it.
 on:
   push:
     tags: ['v[0-9]+.[0-9]+.[0-9]+*']
@@ -41,7 +41,7 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Release notes from changelog.md
+      - name: Release notes from CHANGELOG.md
         run: pnpm exec tsx scripts/release-notes.ts "${{ steps.version.outputs.version }}" > "$RUNNER_TEMP/notes.md"
 
       - name: Build the package

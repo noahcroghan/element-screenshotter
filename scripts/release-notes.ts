@@ -1,4 +1,4 @@
-// Prints the changelog.md section for a version, for use as release notes.
+// Prints the CHANGELOG.md section for a version, for use as release notes.
 //
 //   pnpm exec tsx scripts/release-notes.ts 1.0.0
 //
@@ -27,10 +27,10 @@ if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) {
     console.error('usage: release-notes.ts <version>');
     process.exit(2);
   }
-  const changelog = await readFile(join(import.meta.dirname, '..', 'changelog.md'), 'utf8');
+  const changelog = await readFile(join(import.meta.dirname, '..', 'CHANGELOG.md'), 'utf8');
   const notes = extractNotes(changelog, version);
   if (!notes) {
-    console.error(`changelog.md has no section for ${version}`);
+    console.error(`CHANGELOG.md has no section for ${version}`);
     process.exit(1);
   }
   console.log(notes);
