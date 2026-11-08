@@ -76,6 +76,8 @@ docs/             design notes and this guide
 
 ## Tests
 
+There are two suites: fast unit tests (`pnpm test`) and end-to-end tests in a real browser (`pnpm test:e2e`).
+
 ### Unit tests
 
 `test/unit/` covers the code that doesn't need a real browser: geometry and tile planning, filenames, settings parsing, byte encoding, release notes, and the element-picker rules. happy-dom has no layout, so picker tests give elements fake boxes through a `data-box` attribute.

@@ -1,5 +1,7 @@
 # Security
 
+How to report a vulnerability in Element Screenshotter, and what counts as one.
+
 ## Reporting a vulnerability
 
 Please don't report security problems in public issues. Report them privately through GitHub instead: on the repository's **Security** tab, click **Report a vulnerability**, or go straight to the [advisory form](https://github.com/noahcroghan/element-screenshotter/security/advisories/new).
