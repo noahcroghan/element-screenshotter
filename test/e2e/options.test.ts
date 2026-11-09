@@ -35,6 +35,7 @@ test('the options page is localised and saves changes', async () => {
   // The shortcut is filled in asynchronously.
   await page.waitForFunction(() => document.querySelector('#shortcut')?.textContent);
   expect(await page.$eval('#shortcut', (shortcut) => shortcut.textContent)).toMatch(/S$/);
+  expect(await page.$eval('#shortcut kbd:last-child', (key) => key.textContent)).toMatch(/S$/);
 
   expect(await page.$eval('input[name="showElementLabel"]', (box) => box.checked)).toBe(false);
   expect(await page.$eval('input[value="navigate"]', (radio) => radio.checked)).toBe(true);

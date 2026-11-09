@@ -15,6 +15,17 @@ function showSettings(settings: Settings) {
   movablePanel.checked = settings.movablePanel;
 }
 
+/** Fill an element with a message, turning `<kbd>Key</kbd>` into real kbd elements. */
+function fillMessage(element: HTMLElement, message: string) {
+  element.replaceChildren(
+    ...message
+      .split(/<kbd>(.*?)<\/kbd>/)
+      .map((part, index) =>
+        index % 2 ? Object.assign(document.createElement('kbd'), { textContent: part }) : part,
+      ),
+  );
+}
+
 function localizePage() {
   document.title = localize('optionsTitle');
   for (const labelled of document.querySelectorAll<HTMLElement>('[data-i18n]')) {
@@ -40,9 +51,13 @@ async function showShortcut() {
   const commands = await chrome.commands.getAll();
   const main = commands.find((command) => command.name === '_execute_action');
   const shortcut = document.getElementById('shortcut') as HTMLParagraphElement;
-  shortcut.textContent = main?.shortcut
-    ? localize('optShortcutCurrent', main.shortcut)
-    : localize('optShortcutNone');
+  // "Ctrl+Shift+S" shows as one key cap per key. macOS reports symbols
+  // without separators ("\u21E7\u2318S"), which stay one key cap.
+  const keys = main?.shortcut
+    ?.split('+')
+    .map((key) => `<kbd>${key}</kbd>`)
+    .join('+');
+  fillMessage(shortcut, keys ? localize('optShortcutCurrent', keys) : localize('optShortcutNone'));
 }
 
 localizePage();
