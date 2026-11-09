@@ -219,7 +219,6 @@ describe('visible and full page', () => {
         expect(near(px, colour), `y=${pageY}: ${px.join(',')}`).toBe(true);
       }
     }
-    expect(await page.evaluate(() => window.scrollY)).toBe(0);
   }
 
   test('the wheel cannot scroll the page during a full page capture', async () => {
@@ -250,6 +249,8 @@ describe('visible and full page', () => {
         ).length,
     );
     expect(prevented).toBeGreaterThan(3);
+    // No check of the restored scroll position: a turn can land just before
+    // the capture starts blocking the wheel, or just after it stops.
     await expectBands();
   });
 
@@ -266,6 +267,7 @@ describe('visible and full page', () => {
       });
     }
     await expectBands();
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
   });
 
   test('Save visible captures exactly the viewport', async () => {
