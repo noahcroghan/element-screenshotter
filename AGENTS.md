@@ -12,7 +12,7 @@ Human-facing docs come first: [README.md](README.md) for users, [docs/developmen
 - Write prose that is plain, concise, and ASCII-only.
 - Leave changes uncommitted for the owner to review and test. Before handing work over, run `pnpm check`, and `pnpm test:e2e` when behaviour changes.
 - Commit only when the owner asks you to commit, and push only when they ask you to push. Being asked to commit is not permission to push.
-- Make small commits with Conventional Commit messages; the husky hook runs commitlint. After pushing, check CI. Changes that only touch Markdown files don't need it, since `pnpm check` already lints them. CI runs only on pushes to `main` and on pull requests, so a branch without a pull request gets none. Runs on pull requests from forks may wait for a maintainer to approve them; say so in your report rather than waiting.
+- Make atomic commits: one logical change per commit, with its code, tests, and docs together, so each commit builds and passes checks on its own. Split unrelated changes, even in the same file, into separate commits. Use Conventional Commit messages; the husky hook runs commitlint. After pushing, check CI. Changes that only touch Markdown files don't need it, since `pnpm check` already lints them. CI runs only on pushes to `main` and on pull requests, so a branch without a pull request gets none. Runs on pull requests from forks may wait for a maintainer to approve them; say so in your report rather than waiting.
 - Finish with a short report: what changed, how you verified it, how the owner can test it, and anything the owner still has to do.
 
 ## Things that cost time before
