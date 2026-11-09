@@ -11,8 +11,10 @@ import cursorTree from './svg/cursor.svg';
 import download from './svg/download.svg';
 import faceTree from './svg/face.svg';
 import retry from './svg/retry.svg';
+import saveFullpage from './svg/save-fullpage.svg';
+import saveVisible from './svg/save-visible.svg';
 
-const ICONS = { close, copy, download, retry } as const;
+const ICONS = { close, copy, download, retry, saveVisible, saveFullpage } as const;
 
 export type IconName = keyof typeof ICONS;
 

@@ -262,8 +262,8 @@ export class Overlay {
     const panel = buildElement(
       'div',
       { id: 'panel' },
-      button('save-visible', 'saveVisible'),
-      button('save-fullpage', 'saveFullPage', { primary: true }),
+      button('save-visible', 'saveVisible', { icon: 'saveVisible' }),
+      button('save-fullpage', 'saveFullPage', { icon: 'saveFullpage', primary: true }),
     );
 
     const hover = buildElement('div', { id: 'hover', hidden: true });

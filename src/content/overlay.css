@@ -142,6 +142,24 @@ kbd {
   cursor: auto;
 }
 
+/* Icon above the label, sized as in Firefox's screenshots-buttons.css. */
+#panel button {
+  flex-direction: column;
+  gap: 0;
+  min-width: 90px;
+  padding: 0 5px 5px;
+}
+
+#panel button svg {
+  width: 46px;
+  height: 46px;
+}
+
+/* Firefox's --screenshots-icon-background-color, in both color schemes. */
+.capture-screen {
+  fill: #5b5b66;
+}
+
 /* ---- Hover highlight and element label ---- */
 
 #hover {

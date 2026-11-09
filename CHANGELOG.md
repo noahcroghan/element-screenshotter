@@ -9,6 +9,7 @@ Changes since the last release.
 ### Added
 
 - An **Arrow keys** setting. Choose **Move the pointer** to make the arrow keys work as in Firefox: they move the pointer by 1 pixel (10 with `Shift`), `Enter` selects the element under it, and `Space` draws a region. The default still moves the highlight through the element tree.
+- Icons on the **Save visible** and **Save full page** buttons, the same ones Firefox uses.
 
 ### Changed
 
