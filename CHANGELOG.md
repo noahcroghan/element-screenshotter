@@ -15,6 +15,10 @@ Changes since the last release.
 
 - The label with the highlighted element's tag, id, classes, and size is now off by default, as in Firefox. Turn it on with the new **Element label** setting.
 
+### Fixed
+
+- The highlight and its label no longer draw over the **Save visible** and **Save full page** buttons when the highlighted element runs under them.
+
 ## [1.0.0] - 2026-11-05
 
 The first release. Element Screenshotter brings Firefox's screenshot tool to Chromium browsers.

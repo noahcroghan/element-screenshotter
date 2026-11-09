@@ -370,9 +370,10 @@ export class Overlay {
       'div',
       { id: 'root', tabindex: -1 },
       preview,
-      panel,
       hover,
       hoverLabel,
+      // Above the highlight and its label, which may lie under it.
+      panel,
       selection,
       cursor,
       buttons,
