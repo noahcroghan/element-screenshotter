@@ -38,8 +38,16 @@ legend {
 .choice {
   display: flex;
   gap: 8px;
-  align-items: baseline;
+  align-items: flex-start;
   margin: 4px 0;
+}
+
+/* Centre the control on the first line of its label, even when the label wraps. */
+.choice input {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  margin: calc((1lh - 13px) / 2) 0 0;
 }
 
 #status {
