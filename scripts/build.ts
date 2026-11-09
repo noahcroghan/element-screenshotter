@@ -8,6 +8,7 @@ import * as esbuild from 'esbuild';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { watch as watchFiles } from 'node:fs';
 import { basename, dirname, join, relative } from 'node:path';
+import { svgPlugin } from './svg-plugin.ts';
 import { zipDirectory } from './zip.ts';
 
 const root = join(import.meta.dirname, '..');
@@ -20,6 +21,7 @@ const common: esbuild.BuildOptions = {
   bundle: true,
   target: 'chrome116',
   loader: { '.css': 'text' },
+  plugins: [svgPlugin],
   sourcemap: args.has('--watch') ? 'inline' : false,
   legalComments: 'inline',
   logLevel: 'info',

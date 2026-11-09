@@ -1,0 +1,6 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M8 2a6 6 0 1 0 5.66 8h-2.13A4 4 0 1 1 8 4c1.1 0 2.1.45 2.83 1.17L9 7h5V2l-1.76 1.76A6 6 0 0 0 8 2z"/>
+</svg>

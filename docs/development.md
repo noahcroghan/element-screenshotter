@@ -64,6 +64,7 @@ src/
     element-picker.ts
     capture.ts      scroll-and-stitch
     output.ts       clipboard and download plumbing
+    svg/            overlay icons and the face, as .svg files
   offscreen/      turns image bytes into a blob: URL for chrome.downloads
   options/        settings page
   shared/         pure helpers used everywhere (geometry, filenames, settings, messages)
@@ -119,6 +120,7 @@ Google Chrome 137 and newer ignores `--load-extension`. Puppeteer loads the exte
   - No `break` or `continue`. Use early returns, conditions, `find`, or `filter`.
   - Source files are ASCII. Write `\u00d7`, not the character itself. The same goes for Markdown, though only by convention: write "Up Arrow", not an arrow symbol.
 - Content-script code must survive hostile pages. Never use `innerHTML`, which breaks under Trusted Types; build DOM with `buildElement()` from `src/content/dom.ts`. Set styles through CSSOM (`el.style.setProperty`), never with `setAttribute('style')`, and keep CSS in the constructable stylesheet. Don't load images from `data:` URLs; draw on a canvas instead.
+- SVGs go in `src/content/svg/` as `.svg` files, never as path strings in code. The build (`scripts/svg-plugin.ts`) turns an imported `.svg` into a plain element tree, and `buildSvgTree()` creates the DOM from it, so no markup is parsed in the page. Colour them with classes and `currentColor` from the stylesheet. The parser accepts only elements, double-quoted attributes, and comments.
 - Keep `src/shared/` free of DOM and `chrome.*` calls where possible, so it can be unit tested.
 - Every UI string goes through `localize()` and lives in `static/_locales/en/messages.json`.
 - Files adapted from Firefox keep the MPL header and say what they're adapted from.

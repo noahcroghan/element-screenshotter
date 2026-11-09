@@ -1,0 +1,8 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<!-- Crosshair drawn where the arrow keys put the pointer. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23">
+  <path class="cursor-outline" d="M0 11.5h23M11.5 0v23"/>
+  <path class="cursor-line" d="M1 11.5h21M11.5 1v21"/>
+</svg>

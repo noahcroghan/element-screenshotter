@@ -3,6 +3,8 @@
  * enforce Trusted Types cannot break it.
  */
 
+import type { SvgNode } from '../../scripts/svg-plugin';
+
 type Attrs = Record<string, string | number | boolean | undefined>;
 type Child = Node | string | null | undefined | false;
 
@@ -23,10 +25,11 @@ function isPresent(child: Child): child is Node | string {
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-export function buildSvg(tag: string, attrs: Attrs = {}, ...children: Child[]): SVGElement {
-  const created = document.createElementNS(SVG_NS, tag);
-  setAttrs(created, attrs);
-  created.append(...children.filter(isPresent));
+/** Build an SVG imported from a .svg file (see scripts/svg-plugin.ts). */
+export function buildSvgTree(node: SvgNode): SVGElement {
+  const created = document.createElementNS(SVG_NS, node.tag);
+  setAttrs(created, node.attrs);
+  created.append(...node.children.map(buildSvgTree));
   return created;
 }
 

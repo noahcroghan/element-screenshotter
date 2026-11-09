@@ -33,7 +33,7 @@ import {
 import { localize, type MessageKey } from '../shared/i18n';
 import type { Settings } from '../shared/settings';
 import { captureRegion, type CaptureResult } from './capture';
-import { buildElement, buildSvg, place } from './dom';
+import { buildElement, place } from './dom';
 import {
   deepElementFromPoint,
   describeElement,
@@ -45,7 +45,7 @@ import {
   visibleSibling,
 } from './element-picker';
 import { HOST_TAG, styleHost } from './host';
-import { face, icon, type Face, type IconName } from './icons';
+import { cursor as cursorIcon, face, icon, type Face, type IconName } from './icons';
 import {
   captureFinished,
   captureViewport,
@@ -277,16 +277,7 @@ export class Overlay {
     });
     // Firefox moves the real pointer with the arrow keys. We can't, so we
     // hide it and draw a crosshair where the keys put it.
-    const cursor = buildElement(
-      'div',
-      { id: 'cursor', hidden: true },
-      buildSvg(
-        'svg',
-        { viewBox: '0 0 23 23', 'aria-hidden': 'true', focusable: 'false' },
-        buildSvg('path', { class: 'cursor-outline', d: 'M0 11.5h23M11.5 0v23' }),
-        buildSvg('path', { class: 'cursor-line', d: 'M1 11.5h21M11.5 1v21' }),
-      ),
-    );
+    const cursor = buildElement('div', { id: 'cursor', hidden: true }, cursorIcon());
 
     const size = buildElement('span', { id: 'size' });
     const movers = MOVERS.map((mover) => {
