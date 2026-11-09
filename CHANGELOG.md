@@ -6,6 +6,10 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 Changes since the last release.
 
+### Added
+
+- An **Arrow keys** setting. Choose **Move the pointer** to make the arrow keys work as in Firefox: they move the pointer by 1 pixel (10 with `Shift`), `Enter` selects the element under it, and `Space` draws a region. The default still moves the highlight through the element tree.
+
 ### Changed
 
 - The label with the highlighted element's tag, id, classes, and size is now off by default, as in Firefox. Turn it on with the new **Element label** setting.

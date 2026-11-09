@@ -7,7 +7,8 @@
  * browser/components/screenshots/ScreenshotsOverlayChild.sys.mjs.
  *
  * States:
- *  crosshairs    Hover highlights an element. Arrow keys walk the element tree.
+ *  crosshairs    Hover highlights an element. Arrow keys walk the element tree,
+ *                or move the pointer (the arrowKeys setting).
  *  draggingReady Pointer is down but has not moved far enough to drag.
  *  dragging      The user is drawing a region.
  *  selected      A region is selected; it can be moved, resized, copied or saved.
@@ -32,7 +33,7 @@ import {
 import { localize, type MessageKey } from '../shared/i18n';
 import type { Settings } from '../shared/settings';
 import { captureRegion, type CaptureResult } from './capture';
-import { buildElement, place } from './dom';
+import { buildElement, buildSvg, place } from './dom';
 import {
   deepElementFromPoint,
   describeElement,
@@ -78,6 +79,8 @@ const MOVER_EDGES = {
 type Mover = keyof typeof MOVER_EDGES;
 const MOVERS = Object.keys(MOVER_EDGES) as Mover[];
 const CORNERS: ReadonlySet<string> = new Set(['topLeft', 'topRight', 'bottomRight', 'bottomLeft']);
+/** States in which the pointer matters, so a keyboard-moved one is drawn. */
+const POINTER_STATES: ReadonlySet<State> = new Set(['crosshairs', 'draggingReady', 'dragging']);
 
 const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform);
 const ACCEL = IS_MAC ? 'Cmd+' : 'Ctrl+';
@@ -95,6 +98,7 @@ interface Elements {
   panel: HTMLDivElement;
   hover: HTMLDivElement;
   hoverLabel: HTMLDivElement;
+  cursor: HTMLDivElement;
   selection: HTMLDivElement;
   bgTop: HTMLDivElement;
   bgBottom: HTMLDivElement;
@@ -158,7 +162,12 @@ export class Overlay {
   #hoverElement: Element | null = null;
   #hoverByKeyboard = false;
   #navigationStack: Element[] = [];
+  /** Where the pointer is, in client coordinates. Moved by the mouse or the arrow keys. */
   #pointer: Point | null = null;
+  /** The last position the mouse reported. */
+  #mousePointer: Point | null = null;
+  /** The pointer was last moved with the arrow keys, so we draw it ourselves. */
+  #keyboardPointer = false;
   #probeQueued = false;
 
   // Selection
@@ -206,6 +215,7 @@ export class Overlay {
         ? { label: describeElement(this.#hoverElement), rect: hoverRect }
         : null,
       labelShown: labelBox.width > 1 && labelBox.height > 1,
+      keyboardPointer: this.#ui.cursor.hidden ? null : this.#pointer,
       selection: this.#state === 'crosshairs' ? null : this.#selectionRect(),
       selectedElement: this.#selectedElement ? describeElement(this.#selectedElement) : null,
     };
@@ -241,7 +251,11 @@ export class Overlay {
       { id: 'preview' },
       buildElement('div', { id: 'face' }, theFace.root),
       buildElement('div', { id: 'instructions' }, localize('instructions')),
-      buildElement('div', { id: 'nav-hint' }, localize('navHint')),
+      buildElement(
+        'div',
+        { id: 'nav-hint' },
+        localize(this.#settings.arrowKeys === 'pointer' ? 'navHintPointer' : 'navHint'),
+      ),
       button('preview-cancel', 'cancel', { ghost: true, title: localize('cancelTitle') }),
     );
 
@@ -261,6 +275,18 @@ export class Overlay {
       hidden: true,
       'aria-live': 'polite',
     });
+    // Firefox moves the real pointer with the arrow keys. We can't, so we
+    // hide it and draw a crosshair where the keys put it.
+    const cursor = buildElement(
+      'div',
+      { id: 'cursor', hidden: true },
+      buildSvg(
+        'svg',
+        { viewBox: '0 0 23 23', 'aria-hidden': 'true', focusable: 'false' },
+        buildSvg('path', { class: 'cursor-outline', d: 'M0 11.5h23M11.5 0v23' }),
+        buildSvg('path', { class: 'cursor-line', d: 'M1 11.5h21M11.5 1v21' }),
+      ),
+    );
 
     const size = buildElement('span', { id: 'size' });
     const movers = MOVERS.map((mover) => {
@@ -357,6 +383,7 @@ export class Overlay {
       hover,
       hoverLabel,
       selection,
+      cursor,
       buttons,
       dialog,
     );
@@ -368,6 +395,7 @@ export class Overlay {
       panel,
       hover,
       hoverLabel,
+      cursor,
       selection,
       bgTop,
       bgBottom,
@@ -484,12 +512,27 @@ export class Overlay {
     );
   }
 
-  #pagePoint(event: { clientX: number; clientY: number }): Point {
+  #pagePoint(client: Point): Point {
     const bounds = this.#metrics.bounds;
     return {
-      x: clamp(event.clientX + window.scrollX, bounds.left, bounds.right),
-      y: clamp(event.clientY + window.scrollY, bounds.top, bounds.bottom),
+      x: clamp(client.x + window.scrollX, bounds.left, bounds.right),
+      y: clamp(client.y + window.scrollY, bounds.top, bounds.bottom),
     };
+  }
+
+  /**
+   * Follow the mouse and return the pointer position. Events that repeat the
+   * mouse's last position leave a pointer moved with the arrow keys alone, so
+   * a click without moving the mouse acts where the keys put the pointer.
+   */
+  #trackPointer(event: PointerEvent): Point {
+    const mouse = this.#mousePointer;
+    if (!this.#pointer || mouse?.x !== event.clientX || mouse.y !== event.clientY) {
+      this.#mousePointer = { x: event.clientX, y: event.clientY };
+      this.#pointer = this.#mousePointer;
+      this.#setKeyboardPointer(false);
+    }
+    return this.#pointer;
   }
 
   #isUiControl(target: EventTarget | null): boolean {
@@ -497,17 +540,18 @@ export class Overlay {
   }
 
   #onPointerDown(event: PointerEvent) {
+    const point = this.#trackPointer(event);
     if (event.button !== 0) {
       this.#cancelPointerGesture();
       return;
     }
     if (this.#isUiControl(event.target)) return;
-    const pagePoint = this.#pagePoint(event);
+    const pagePoint = this.#pagePoint(point);
 
     if (this.#state === 'crosshairs') {
       // A click can come before any pointermove (e.g. right after the
       // shortcut). Keep a highlight the user chose with the keyboard.
-      if (!this.#hoverByKeyboard) this.#probe(event.clientX, event.clientY);
+      if (!this.#hoverByKeyboard) this.#probe(point.x, point.y);
       this.#selection = { x1: pagePoint.x, y1: pagePoint.y, x2: pagePoint.x, y2: pagePoint.y };
       this.#ui.root.setPointerCapture(event.pointerId);
       this.#setState('draggingReady');
@@ -528,15 +572,14 @@ export class Overlay {
 
   #onPointerMove(event: PointerEvent) {
     const state = this.#state;
+    const before = this.#pointer;
+    const point = this.#trackPointer(event);
     if (state === 'crosshairs') {
-      const moved =
-        !this.#pointer || this.#pointer.x !== event.clientX || this.#pointer.y !== event.clientY;
-      if (!moved) return;
-      this.#pointer = { x: event.clientX, y: event.clientY };
-      this.#drawEyes(event.clientX, event.clientY);
+      if (point === before) return;
+      this.#drawEyes(point.x, point.y);
       this.#queueProbe();
     } else if (state === 'draggingReady') {
-      const pagePoint = this.#pagePoint(event);
+      const pagePoint = this.#pagePoint(point);
       this.#selection.x2 = pagePoint.x;
       this.#selection.y2 = pagePoint.y;
       const distance = Math.hypot(
@@ -545,14 +588,10 @@ export class Overlay {
       );
       if (distance > DRAG_THRESHOLD) this.#setState('dragging');
     } else if (state === 'dragging') {
-      this.#scrollIfByEdge(event.clientX, event.clientY);
-      const pagePoint = this.#pagePoint(event);
-      this.#selection.x2 = pagePoint.x;
-      this.#selection.y2 = pagePoint.y;
-      this.#drawSelection();
+      this.#dragTo(point);
     } else if (state === 'resizing') {
-      this.#scrollIfByEdge(event.clientX, event.clientY);
-      this.#resizeTo(this.#pagePoint(event));
+      this.#scrollIfByEdge(point.x, point.y);
+      this.#resizeTo(this.#pagePoint(point));
       this.#drawSelection();
     }
   }
@@ -561,18 +600,19 @@ export class Overlay {
     if (this.#ui.root.hasPointerCapture(event.pointerId)) {
       this.#ui.root.releasePointerCapture(event.pointerId);
     }
+    const point = this.#trackPointer(event);
     const state = this.#state;
     if (state === 'draggingReady') {
       if (this.#hoverElement) this.#selectElement(this.#hoverElement);
       else this.#setState('crosshairs');
     } else if (state === 'dragging') {
-      const pagePoint = this.#pagePoint(event);
+      const pagePoint = this.#pagePoint(point);
       this.#selection.x2 = pagePoint.x;
       this.#selection.y2 = pagePoint.y;
       this.#selectedElement = null;
       this.#setState('selected');
     } else if (state === 'resizing') {
-      this.#resizeTo(this.#pagePoint(event));
+      this.#resizeTo(this.#pagePoint(point));
       this.#setState('selected', { keepFocus: true });
     }
   }
@@ -631,7 +671,10 @@ export class Overlay {
     const accel = IS_MAC ? event.metaKey : event.ctrlKey;
     const shortcut = accel ? key.toLowerCase() : '';
     const state = this.#state;
-    if (state === 'crosshairs') return this.#handleCrosshairsKey(key);
+    if (state === 'crosshairs') return this.#handleCrosshairsKey(event);
+    if (state === 'dragging' && this.#settings.arrowKeys === 'pointer') {
+      return this.#handleDraggingKey(event);
+    }
     if (state === 'selected' || state === 'resizing') {
       if (key.startsWith('Arrow')) return this.#keyboardResize(event, this.#shadow.activeElement);
       if (shortcut === 'c') this.#copySelection();
@@ -652,14 +695,42 @@ export class Overlay {
     else if (this.#state !== 'capturing') this.#setState('crosshairs');
   }
 
-  #handleCrosshairsKey(key: string): boolean {
+  #handleCrosshairsKey(event: KeyboardEvent): boolean {
+    const key = event.key;
+    const pointerMode = this.#settings.arrowKeys === 'pointer';
     if (key.startsWith('Arrow')) {
-      this.#navigate(key);
+      if (pointerMode) this.#movePointer(event);
+      else this.#navigate(key);
       return true;
     }
     const onButton = this.#shadow.activeElement instanceof HTMLButtonElement;
-    if ((key === 'Enter' || key === ' ') && !onButton) {
+    if (onButton) return false;
+    if (key === ' ' && pointerMode) {
+      // Firefox: Space starts drawing a region from the pointer.
+      const start = this.#pagePoint(this.#pointerOrCenter());
+      this.#selection = { x1: start.x, y1: start.y, x2: start.x, y2: start.y };
+      this.#setState('dragging');
+      return true;
+    }
+    if (key === 'Enter' || key === ' ') {
       if (this.#hoverElement) this.#selectElement(this.#hoverElement);
+      return true;
+    }
+    return false;
+  }
+
+  /** Pointer mode, while drawing a region: arrows move its corner, Enter or Space ends it. */
+  #handleDraggingKey(event: KeyboardEvent): boolean {
+    const key = event.key;
+    if (key.startsWith('Arrow')) {
+      this.#movePointer(event);
+      return true;
+    }
+    if (key === 'Enter' || key === ' ') {
+      // A held Space that started the region must not end it straight away.
+      if (event.repeat) return true;
+      this.#selectedElement = null;
+      this.#setState('selected');
       return true;
     }
     return false;
@@ -698,6 +769,13 @@ export class Overlay {
     this.#state = next;
     const ui = this.#ui;
     ui.root.className = next === 'capturing' ? 'capturing' : next === 'resizing' ? 'dragging' : '';
+
+    // The mouse takes over again once the pointer stops mattering.
+    if (!POINTER_STATES.has(next) && this.#keyboardPointer) {
+      this.#keyboardPointer = false;
+      this.#pointer = this.#mousePointer;
+    }
+    this.#drawCursor();
 
     const crosshairs = next === 'crosshairs';
     const selecting = next === 'dragging' || next === 'selected' || next === 'resizing';
@@ -798,6 +876,51 @@ export class Overlay {
     this.#ensureVisible(next);
   }
 
+  /** The pointer, or the middle of the viewport when the mouse hasn't been seen yet. */
+  #pointerOrCenter(): Point {
+    if (!this.#pointer) {
+      const { clientWidth, clientHeight } = this.#metrics;
+      this.#pointer = { x: Math.floor(clientWidth / 2), y: Math.floor(clientHeight / 2) };
+      this.#setKeyboardPointer(true);
+    }
+    return this.#pointer;
+  }
+
+  /**
+   * Pointer mode: the arrow keys move the pointer by 1 pixel, or 10 with
+   * Shift, as Firefox does. It stays inside the viewport.
+   */
+  #movePointer(event: KeyboardEvent) {
+    const step = event.shiftKey ? 10 : 1;
+    const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0;
+    const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0;
+    const start = this.#pointerOrCenter();
+    const { clientWidth, clientHeight } = this.#metrics;
+    const point = {
+      x: clamp(start.x + dx, 0, clientWidth - 1),
+      y: clamp(start.y + dy, 0, clientHeight - 1),
+    };
+    this.#pointer = point;
+    this.#setKeyboardPointer(true);
+    this.#drawEyes(point.x, point.y);
+    if (this.#state === 'crosshairs') this.#probe(point.x, point.y);
+    else if (this.#state === 'dragging') this.#dragTo(point);
+  }
+
+  #setKeyboardPointer(on: boolean) {
+    this.#keyboardPointer = on;
+    this.#drawCursor();
+  }
+
+  /** Draw the pointer when the arrow keys moved it, and hide the real one. */
+  #drawCursor() {
+    const { root, cursor } = this.#ui;
+    const point = this.#keyboardPointer && POINTER_STATES.has(this.#state) ? this.#pointer : null;
+    cursor.hidden = !point;
+    root.classList.toggle('keyboard-pointer', !!point);
+    if (point) place(cursor, { left: point.x, top: point.y });
+  }
+
   /** Scroll so a keyboard-chosen element is at least partly on screen. */
   #ensureVisible(target: Element) {
     const rect = topLevelRect(target);
@@ -881,6 +1004,15 @@ export class Overlay {
     this.#selection = cornersOf(page);
     this.#selectedElement = target;
     this.#setState('selected');
+  }
+
+  /** Move the far corner of the region being drawn to a client point. */
+  #dragTo(client: Point) {
+    this.#scrollIfByEdge(client.x, client.y);
+    const pagePoint = this.#pagePoint(client);
+    this.#selection.x2 = pagePoint.x;
+    this.#selection.y2 = pagePoint.y;
+    this.#drawSelection();
   }
 
   #resizeTo(pagePoint: Point) {

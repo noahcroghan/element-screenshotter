@@ -49,6 +49,8 @@ export interface Snapshot {
   hover: { label: string; rect: Rect | null } | null;
   /** Whether the element label is visible on screen. */
   labelShown: boolean;
+  /** Where the pointer is drawn after the arrow keys moved it, if they did. */
+  keyboardPointer: { x: number; y: number } | null;
   selection: Rect | null;
   selectedElement: string | null;
 }

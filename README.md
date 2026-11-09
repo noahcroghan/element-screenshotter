@@ -42,6 +42,8 @@ By default the picker is smart, the way Firefox's is. It skips headings in favou
 | `Left Arrow` / `Right Arrow` | the previous or next sibling      |
 | `Enter`                      | (selects the highlighted element) |
 
+To make the arrow keys work as in Firefox instead, set **Arrow keys** to move the pointer in the settings. Then each arrow key moves the pointer by 1 pixel, or 10 with `Shift`, and the highlight follows it. `Enter` selects the element under the pointer, and `Space` starts drawing a region from it: move the far corner with the arrow keys and press `Enter` or `Space` to finish. Moving the mouse takes over again.
+
 This works inside shadow DOM and inside frames from the same site. A frame from another site can only be captured as a whole.
 
 Elements taller or wider than the window are fine. The extension scrolls through them and stitches the pieces together.
@@ -84,6 +86,7 @@ Right-click the toolbar button and choose **Options**.
 
 - **Element detection.** Smart (the default, like Firefox), or Exact, which always starts from the element directly under the pointer.
 - **Element label.** Shows the highlighted element's tag, id, classes, and size next to it. Off by default, like Firefox. Screen readers announce the element either way.
+- **Arrow keys.** Move the highlight through the element tree (the default), or move the pointer, like Firefox. See [Capture an element](#capture-an-element).
 - **Keyboard shortcut.** Shows the current shortcut, with a button to open the browser's shortcut page where you can change it.
 
 ## Permissions and privacy

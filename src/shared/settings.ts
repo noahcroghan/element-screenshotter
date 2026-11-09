@@ -1,4 +1,5 @@
 export type ElementDetection = 'smart' | 'exact';
+export type ArrowKeys = 'navigate' | 'pointer';
 
 export interface Settings {
   /**
@@ -12,17 +13,24 @@ export interface Settings {
    * Off by default, like Firefox.
    */
   showElementLabel: boolean;
+  /**
+   * What the arrow keys do while picking. "navigate" walks the element tree.
+   * "pointer" moves the pointer, like Firefox, and Space starts a region.
+   */
+  arrowKeys: ArrowKeys;
 }
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   elementDetection: 'smart',
   showElementLabel: false,
+  arrowKeys: 'navigate',
 });
 
 /** Coerce whatever is in storage into a valid Settings object. */
 export function normalizeSettings(raw: unknown): Settings {
   const stored = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
   const detection = stored.elementDetection;
+  const arrowKeys = stored.arrowKeys;
   return {
     elementDetection:
       detection === 'smart' || detection === 'exact'
@@ -32,6 +40,8 @@ export function normalizeSettings(raw: unknown): Settings {
       typeof stored.showElementLabel === 'boolean'
         ? stored.showElementLabel
         : DEFAULT_SETTINGS.showElementLabel,
+    arrowKeys:
+      arrowKeys === 'navigate' || arrowKeys === 'pointer' ? arrowKeys : DEFAULT_SETTINGS.arrowKeys,
   };
 }
 

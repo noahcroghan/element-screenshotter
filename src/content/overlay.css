@@ -191,6 +191,37 @@ kbd {
   box-shadow: none;
 }
 
+/* ---- Pointer moved with the arrow keys ---- */
+
+/* Firefox moves the real pointer. We hide it and draw our own. */
+#root.keyboard-pointer {
+  cursor: none;
+}
+
+#cursor {
+  position: absolute;
+  width: 23px;
+  height: 23px;
+  margin: -11px 0 0 -11px;
+  pointer-events: none;
+}
+
+#cursor svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cursor-outline {
+  stroke: #fff;
+  stroke-width: 3;
+}
+
+.cursor-line {
+  stroke: #000;
+  stroke-width: 1;
+}
+
 /* ---- Selection ---- */
 
 #selection {
@@ -501,5 +532,11 @@ button svg {
   }
   .mover {
     background: ButtonText;
+  }
+  .cursor-outline {
+    stroke: Canvas;
+  }
+  .cursor-line {
+    stroke: CanvasText;
   }
 }

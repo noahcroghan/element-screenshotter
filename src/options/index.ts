@@ -5,10 +5,12 @@ const form = document.getElementById('form') as HTMLFormElement;
 const status = document.getElementById('status') as HTMLParagraphElement;
 const detection = form.elements.namedItem('elementDetection') as RadioNodeList;
 const showLabel = form.elements.namedItem('showElementLabel') as HTMLInputElement;
+const arrowKeys = form.elements.namedItem('arrowKeys') as RadioNodeList;
 
 function showSettings(settings: Settings) {
   detection.value = settings.elementDetection;
   showLabel.checked = settings.showElementLabel;
+  arrowKeys.value = settings.arrowKeys;
 }
 
 function localizePage() {
@@ -23,6 +25,7 @@ async function persist() {
   const saved = await saveSettings({
     elementDetection: detection.value as Settings['elementDetection'],
     showElementLabel: showLabel.checked,
+    arrowKeys: arrowKeys.value as Settings['arrowKeys'],
   });
   showSettings(saved);
   status.textContent = localize('optSaved');

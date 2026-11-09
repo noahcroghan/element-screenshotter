@@ -290,4 +290,58 @@ describe('settings', () => {
     await hover(150, 180);
     expect((await harness.snapshot(page))?.labelShown).toBe(true);
   });
+
+  test('pointer mode: arrow keys move the pointer, a mouse move takes over again', async () => {
+    await worker.evaluate(() => chrome.storage.sync.set({ arrowKeys: 'pointer' }));
+    await open();
+    await harness.start(page);
+    await hover(150, 180);
+    expect((await harness.snapshot(page))?.keyboardPointer).toBeNull();
+    for (let count = 0; count < 10; count++) await page.keyboard.press('ArrowRight');
+    let snap = await harness.snapshot(page);
+    expect(snap?.keyboardPointer).toEqual({ x: 160, y: 180 });
+    expect(snap?.hover?.label).toBe('div#inner');
+
+    await page.keyboard.down('Shift');
+    for (let count = 0; count < 9; count++) await page.keyboard.press('ArrowRight');
+    await page.keyboard.up('Shift');
+    snap = await harness.snapshot(page);
+    expect(snap?.keyboardPointer).toEqual({ x: 250, y: 180 });
+    expect(snap?.hover?.label).toBe('div#card');
+
+    await hover(150, 180);
+    snap = await harness.snapshot(page);
+    expect(snap?.keyboardPointer).toBeNull();
+    expect(snap?.hover?.label).toBe('div#inner');
+  });
+
+  test('pointer mode: Enter selects the element under the pointer', async () => {
+    await worker.evaluate(() => chrome.storage.sync.set({ arrowKeys: 'pointer' }));
+    await open();
+    await harness.start(page);
+    await hover(250, 180);
+    await page.keyboard.press('ArrowUp'); // still div#card, not its parent
+    expect((await harness.snapshot(page))?.hover?.label).toBe('div#card');
+    await page.keyboard.press('Enter');
+    const snap = await harness.waitForState(page, 'selected');
+    expect(snap?.selectedElement).toBe('div#card');
+    expect(snap?.keyboardPointer).toBeNull();
+  });
+
+  test('pointer mode: Space draws a region with the arrow keys', async () => {
+    await worker.evaluate(() => chrome.storage.sync.set({ arrowKeys: 'pointer' }));
+    await open();
+    await harness.start(page);
+    await hover(560, 480);
+    await page.keyboard.press('Space');
+    await harness.waitForState(page, 'dragging');
+    await page.keyboard.down('Shift');
+    for (let count = 0; count < 30; count++) await page.keyboard.press('ArrowRight');
+    for (let count = 0; count < 15; count++) await page.keyboard.press('ArrowDown');
+    await page.keyboard.up('Shift');
+    await page.keyboard.press('Enter');
+    const snap = await harness.waitForState(page, 'selected');
+    expect(snap?.selection).toEqual({ left: 560, top: 480, right: 860, bottom: 630 });
+    expect(snap?.selectedElement).toBeNull();
+  });
 });

@@ -17,6 +17,9 @@
   "navHint": {
     "message": "Arrow keys pick the parent, child, or sibling element. Enter selects it."
   },
+  "navHintPointer": {
+    "message": "Arrow keys move the pointer, 10 pixels at a time with Shift. Enter selects the element under it. Space starts a region."
+  },
   "cancel": {
     "message": "Cancel"
   },
@@ -100,6 +103,15 @@
   },
   "optShowElementLabel": {
     "message": "Show the highlighted element's tag, id, classes, and size. Firefox doesn't."
+  },
+  "optArrowKeys": {
+    "message": "Arrow keys"
+  },
+  "optArrowNavigate": {
+    "message": "Move the highlight to the parent, child, or sibling element."
+  },
+  "optArrowPointer": {
+    "message": "Move the pointer, like Firefox. Shift moves 10 pixels. Space starts drawing a region, and Enter or Space finishes it."
   },
   "optShortcut": {
     "message": "Keyboard shortcut"

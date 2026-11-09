@@ -134,8 +134,15 @@ below needs.
 On top of that, we add:
 
 - **Element-tree navigation.** Arrow keys go to the parent, child, and
-  siblings, so any element is reachable. Firefox uses the arrows to move the
-  cursor, which extensions can't do.
+  siblings, so any element is reachable. This is the default.
+- A **pointer mode** for the arrow keys (setting) that follows Firefox. Firefox
+  moves the real cursor with `sendNativeMouseEvent`, which extensions can't
+  do. We keep a virtual pointer instead: the arrows move it, we hide the real
+  cursor and draw a crosshair there, and hit testing uses it. `Space` starts a
+  region from it and `Enter` or `Space` ends it, as in Firefox. A mouse event
+  at a new position hands control back to the mouse. Events that repeat the
+  mouse's last position don't, so a click without moving the mouse acts where
+  the keys put the pointer.
 - An **"exact" mode** (setting) that starts at the element under the cursor
   instead of the heuristic's choice.
 - **Shadow DOM piercing**, including closed roots via
