@@ -1,4 +1,4 @@
-/** CSS files are bundled as text by esbuild (see scripts/build.mjs). */
+/** CSS files are bundled as text by esbuild (see scripts/build.ts). */
 declare module '*.css' {
   const css: string;
   export default css;
