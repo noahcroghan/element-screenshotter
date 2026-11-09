@@ -3,7 +3,9 @@
   "config": {
     "default": true,
     // Tables frequently cause long line lengths
-    "MD013": false
+    "MD013": false,
+    // The changelog repeats "Added", "Changed", and so on under each version
+    "MD024": { "siblings_only": true }
   },
   "customRules": ["./scripts/markdownlint-intro-before-subheading.ts"],
   // `**` skips dot folders, so .github is listed on its own.
