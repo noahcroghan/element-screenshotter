@@ -96,31 +96,31 @@
     "message": "Element detection"
   },
   "optSmart": {
-    "message": "Smart, like Firefox. Skips headings, prefers articles, and ignores huge wrappers."
+    "message": "Smart: skips headings, prefers articles, and ignores large wrappers (like Firefox)"
   },
   "optExact": {
-    "message": "Exact. Always starts from the element directly under the pointer."
+    "message": "Exact: always starts from the element directly under the pointer"
   },
   "optElementLabel": {
     "message": "Element label"
   },
   "optShowElementLabel": {
-    "message": "Show the highlighted element's tag, id, classes, and size. Firefox doesn't."
+    "message": "Show the highlighted element's tag, id, classes, and size"
   },
   "optArrowKeys": {
     "message": "Arrow keys"
   },
   "optArrowNavigate": {
-    "message": "Move the highlight to the parent, child, or sibling element."
+    "message": "Move the highlight to the parent, child, or sibling element"
   },
   "optArrowPointer": {
-    "message": "Move the pointer, like Firefox. Shift moves 10 pixels. Space starts drawing a region, and Enter or Space finishes it."
+    "message": "Move the pointer (like Firefox)"
   },
   "optSaveButtons": {
     "message": "Save buttons"
   },
   "optMovablePanel": {
-    "message": "Drag the Save visible and Save full page buttons anywhere, and keep them there. Firefox keeps them in the top-right corner."
+    "message": "Drag the Save buttons anywhere and keep them there"
   },
   "optShortcut": {
     "message": "Keyboard shortcut"
