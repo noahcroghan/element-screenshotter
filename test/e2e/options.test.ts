@@ -31,9 +31,7 @@ test('the default shortcut is Ctrl+Shift+S (Command+Shift+S on macOS)', async ()
 test('the options page is localised and saves changes', async () => {
   const page = await harness.browser.newPage();
   await page.goto(`chrome-extension://${harness.extension.id}/options.html`);
-  expect(await page.$eval('h1', (heading) => heading.textContent)).toBe(
-    'Element Screenshotter settings',
-  );
+  expect(await page.title()).toBe('Element Screenshotter settings');
   // The shortcut is filled in asynchronously.
   await page.waitForFunction(() => document.querySelector('#shortcut')?.textContent);
   expect(await page.$eval('#shortcut', (shortcut) => shortcut.textContent)).toMatch(/S$/);
