@@ -3,7 +3,6 @@
 *.zip
 .DS_Store
 .e2e-profile/
-.scratch/
 Thumbs.db
 artifacts/
 dist/

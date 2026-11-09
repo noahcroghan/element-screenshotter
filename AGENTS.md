@@ -30,6 +30,6 @@ Human-facing docs come first: [README.md](README.md) for users, [docs/developmen
 
 ## Looking at the UI
 
-`page.screenshot()` from puppeteer captures the overlay too. It's the quickest way to check visual changes. Don't pass `clip`: it resizes the viewport, and the overlay drops the hover highlight on resize. Put throwaway scripts in `.scratch/`, which git and ESLint ignore.
+`page.screenshot()` from puppeteer captures the overlay too. It's the quickest way to check visual changes. Don't pass `clip`: it resizes the viewport, and the overlay drops the hover highlight on resize.
 
 Firefox's original implementation is in `browser/components/screenshots/` at <https://github.com/mozilla-firefox/firefox>. Use a sparse clone if you need it locally.

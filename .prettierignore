@@ -2,4 +2,3 @@ dist/
 artifacts/
 node_modules/
 pnpm-lock.yaml
-.scratch/
