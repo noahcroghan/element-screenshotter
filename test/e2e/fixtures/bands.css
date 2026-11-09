@@ -1,0 +1,21 @@
+html,
+body {
+  margin: 0;
+}
+
+/* Eight 400 px bands, each a different colour, so a tile stitched in the
+   wrong place shows up as the wrong colour. Keep in sync with BANDS in
+   capture.test.ts. */
+body {
+  height: 3200px;
+  background: linear-gradient(
+    #ff0000 0 400px,
+    #00ff00 400px 800px,
+    #0000ff 800px 1200px,
+    #ffff00 1200px 1600px,
+    #ff00ff 1600px 2000px,
+    #00ffff 2000px 2400px,
+    #000000 2400px 2800px,
+    #ff8000 2800px 3200px
+  );
+}

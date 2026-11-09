@@ -73,6 +73,16 @@ and stitching tiles (`src/content/capture.ts`):
   overridden for the duration.
 - Tile placement uses the scroll position the browser actually reached, not
   the one we asked for. Right-to-left pages (negative `scrollX`) work.
+- The user can't scroll while tiles are taken. Each capture waits in the
+  service worker's queue, so a scroll between reading the position and
+  getting the pixels would draw a tile in the wrong place. Non-passive
+  `wheel` and `touchmove` listeners cancel scrolling, a middle-button
+  `mousedown` is cancelled so autoscroll can't start, and keys are already
+  swallowed. Dragging the scrollbar can't be cancelled, so the position is
+  read again after each capture, and the tile is taken again if it moved. A
+  page that keeps moving fails the capture after 5 tries. We don't set
+  `overflow: hidden` on the root: it removes the scrollbar and can change
+  the layout under the tiles.
 - If the region already starts on screen, the first tile is taken at the
   user's current scroll position. What they saw is captured as they saw it.
 - `position: fixed` and `sticky` elements would repeat on every tile. The

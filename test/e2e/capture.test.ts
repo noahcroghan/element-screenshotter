@@ -194,6 +194,80 @@ describe('visible and full page', () => {
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
   });
 
+  /** The colours of bands.html, top to bottom, 400 CSS px each. */
+  const BANDS: Array<[number, number, number]> = [
+    [255, 0, 0],
+    [0, 255, 0],
+    [0, 0, 255],
+    [255, 255, 0],
+    [255, 0, 255],
+    [0, 255, 255],
+    [0, 0, 0],
+    [255, 128, 0],
+  ];
+
+  /** Save the full page of bands.html and check that every band is where it belongs. */
+  async function expectBands() {
+    await harness.waitForState(page, 'preview', 60_000);
+    await accel('s');
+    const img = await readPng(await harness.nextDownload(60_000));
+    expect(img.height).toBe(Math.round(3200 * dpr));
+    for (const [index, colour] of BANDS.entries()) {
+      // Rows on a band edge can blend at fractional scales, so stay 2 px clear.
+      for (let pageY = index * 400 + 2; pageY < (index + 1) * 400 - 2; pageY += 5) {
+        const px = img.pixel(img.width / 2, pageY * dpr);
+        expect(near(px, colour), `y=${pageY}: ${px.join(',')}`).toBe(true);
+      }
+    }
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  }
+
+  test('the wheel cannot scroll the page during a full page capture', async () => {
+    await open('bands.html');
+    // Keep the page's view of the wheel events to check they were cancelled.
+    await page.evaluate(() => {
+      const events: WheelEvent[] = [];
+      Object.assign(window, { wheelEvents: events });
+      window.addEventListener('wheel', (event) => events.push(event), {
+        capture: true,
+        passive: true,
+      });
+    });
+    await harness.start(page);
+    await harness.clickPanel(page, 'fullpage');
+    await page.mouse.move(640, 400);
+    let turns = 0;
+    while ((await harness.snapshot(page))?.state === 'capturing') {
+      await page.mouse.wheel({ deltaY: 300 });
+      turns++;
+      await sleep(50);
+    }
+    expect(turns).toBeGreaterThan(3);
+    const prevented = await page.evaluate(
+      () =>
+        (window as unknown as { wheelEvents: WheelEvent[] }).wheelEvents.filter(
+          (event) => event.defaultPrevented,
+        ).length,
+    );
+    expect(prevented).toBeGreaterThan(3);
+    await expectBands();
+  });
+
+  test('a tile is taken again if the page scrolls during a full page capture', async () => {
+    await open('bands.html');
+    await harness.start(page);
+    await harness.clickPanel(page, 'fullpage');
+    // Scripted scrolling stands in for dragging the scrollbar, which can't be blocked.
+    for (let count = 0; count < 3; count++) {
+      await sleep(300);
+      expect((await harness.snapshot(page))?.state).toBe('capturing');
+      await page.evaluate(() => {
+        window.scrollBy(0, 150);
+      });
+    }
+    await expectBands();
+  });
+
   test('Save visible captures exactly the viewport', async () => {
     await open();
     await page.evaluate(() => {

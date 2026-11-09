@@ -108,13 +108,8 @@ async function captureTile(
   previous: Output | null,
   progress: { done: number; total: number },
 ): Promise<Output> {
-  if (window.scrollX !== tile.x || window.scrollY !== tile.y) {
-    window.scrollTo({ left: tile.x, top: tile.y, behavior: 'instant' });
-  }
-  await afterPaint();
-  // Use where the browser actually scrolled to, not where we asked.
-  const scrolledTo = { x: window.scrollX, y: window.scrollY };
-  const bitmap = await createImageBitmap(dataUrlToBlob(await opts.captureViewport(progress)));
+  const { scrolledTo, dataUrl } = await shootTile(opts, tile, progress);
+  const bitmap = await createImageBitmap(dataUrlToBlob(dataUrl));
   try {
     const output = previous ?? createOutput(region, captureScale(bitmap.width));
     const visible: Rect = {
@@ -129,6 +124,37 @@ async function captureTile(
   } finally {
     bitmap.close();
   }
+}
+
+/**
+ * How often to take a tile again when the page scrolled while it was being
+ * captured. Something that keeps scrolling the page makes the capture fail
+ * instead of hanging.
+ */
+const MAX_TILE_ATTEMPTS = 5;
+
+/** Scroll to a tile and capture the viewport, again if the page moved meanwhile. */
+async function shootTile(
+  opts: CaptureOptions,
+  tile: Point,
+  progress: { done: number; total: number },
+): Promise<{ scrolledTo: Point; dataUrl: string }> {
+  for (let attempt = 1; attempt <= MAX_TILE_ATTEMPTS; attempt++) {
+    if (window.scrollX !== tile.x || window.scrollY !== tile.y) {
+      window.scrollTo({ left: tile.x, top: tile.y, behavior: 'instant' });
+    }
+    await afterPaint();
+    // Use where the browser actually scrolled to, not where we asked.
+    const scrolledTo = { x: window.scrollX, y: window.scrollY };
+    const dataUrl = await opts.captureViewport(progress);
+    // The capture is queued, so it can land well after the scroll. If the
+    // page moved in between (a scrollbar drag, say), the pixels show some
+    // other part of it.
+    if (window.scrollX === scrolledTo.x && window.scrollY === scrolledTo.y) {
+      return { scrolledTo, dataUrl };
+    }
+  }
+  throw new Error('the page kept scrolling');
 }
 
 function createOutput(region: Rect, scale: number): Output {
@@ -216,15 +242,36 @@ function restoreStyle(saved: SavedStyle) {
   }
 }
 
-/** Makes programmatic scrolling instant and exact, and restores the user's position. */
+/**
+ * Makes programmatic scrolling instant and exact, keeps the user from
+ * scrolling while tiles are taken, and restores the user's position.
+ */
 class ScrollGuard {
   #saved: SavedStyle[] = [];
+  #listeners: AbortController | null = null;
   #scrollX = 0;
   #scrollY = 0;
 
   engage() {
     this.#scrollX = window.scrollX;
     this.#scrollY = window.scrollY;
+    // The wheel, touch scrolling, and middle-click autoscroll. Keys are
+    // already swallowed by the overlay. Dragging the scrollbar can't be
+    // stopped this way; captureTile notices it and takes the tile again.
+    this.#listeners = new AbortController();
+    const block = (event: Event) => {
+      event.preventDefault();
+    };
+    const options = { capture: true, passive: false, signal: this.#listeners.signal };
+    window.addEventListener('wheel', block, options);
+    window.addEventListener('touchmove', block, options);
+    window.addEventListener(
+      'mousedown',
+      (event) => {
+        if (event.button === 1) event.preventDefault();
+      },
+      options,
+    );
     // document.body can be null (e.g. frameset or SVG documents).
     const roots: (HTMLElement | null)[] = [document.documentElement, document.body];
     this.#saved = roots
@@ -235,6 +282,8 @@ class ScrollGuard {
   }
 
   release() {
+    this.#listeners?.abort();
+    this.#listeners = null;
     window.scrollTo({ left: this.#scrollX, top: this.#scrollY, behavior: 'instant' });
     this.#saved.forEach(restoreStyle);
     this.#saved = [];

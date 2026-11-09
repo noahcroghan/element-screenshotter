@@ -109,7 +109,7 @@ The extension doesn't connect to the internet, collect data, or keep your screen
 
 - **Some pages can't be captured.** Browsers don't let extensions run on their own pages (`chrome://` pages, the extensions page), the Chrome Web Store, other extensions' pages, or the built-in PDF viewer. The toolbar button shows a red `!` when this happens.
 - **Copying needs HTTPS.** Browsers only allow copying images to the clipboard on secure pages. On plain `http://` sites, use Download instead.
-- **Long captures take a moment.** Chromium allows two viewport captures per second, so a page that's ten screens tall takes about five seconds. The toolbar badge shows progress.
+- **Long captures take a moment.** Chromium allows two viewport captures per second, so a page that's ten screens tall takes about five seconds. The toolbar badge shows progress, and the page can't be scrolled until it's done.
 - **Fixed and sticky elements** (headers, cookie banners, chat buttons) appear once, at the top of a full-page capture. In stitched element or region captures they're left out unless they were already on screen where you selected.
 - **Pages that scroll an inner panel** instead of the window (some web apps do this) can only be captured one screen at a time. Firefox has the same limitation.
 - **Very large captures are cropped** to 32,766 pixels per side and about 125 million pixels in total. You'll be told when that happens.
