@@ -77,8 +77,7 @@ describe('preview dialog', () => {
   test('Retry goes back to picking', async () => {
     await open('elements.html');
     await harness.start(page);
-    const vw = await page.evaluate(() => document.documentElement.clientWidth);
-    await page.mouse.click(vw - 180, 36); // Save visible
+    await harness.clickPanel(page, 'visible');
     await harness.waitForState(page, 'preview');
     // Focus starts on Download; Retry is three buttons to the left.
     await press('Tab', 3, 'Shift');
@@ -92,9 +91,8 @@ describe('unusual pages', () => {
     await open('rtl.html');
     expect(await page.evaluate(() => window.scrollX)).toBe(0);
     await harness.start(page);
-    const vw = await page.evaluate(() => document.documentElement.clientWidth);
     // Our UI follows the UI language, not the page: "Save full page" is still on the right.
-    await page.mouse.click(vw - 70, 36);
+    await harness.clickPanel(page, 'fullpage');
     await harness.waitForState(page, 'preview', 60_000);
     await press('s', 1, ACCEL);
     const img = await readPng(await harness.nextDownload(60_000));
@@ -109,7 +107,7 @@ describe('unusual pages', () => {
     await open('huge.html');
     await harness.start(page);
     const vw = await page.evaluate(() => document.documentElement.clientWidth);
-    await page.mouse.click(vw - 70, 36);
+    await harness.clickPanel(page, 'fullpage');
     await harness.waitForState(page, 'preview', 85_000);
     await press('s', 1, ACCEL);
     const img = await readPng(await harness.nextDownload(60_000));

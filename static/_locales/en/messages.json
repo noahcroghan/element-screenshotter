@@ -26,6 +26,9 @@
   "cancelTitle": {
     "message": "Cancel (Esc)"
   },
+  "movePanelTitle": {
+    "message": "Drag to move"
+  },
   "copy": {
     "message": "Copy"
   },
@@ -112,6 +115,12 @@
   },
   "optArrowPointer": {
     "message": "Move the pointer, like Firefox. Shift moves 10 pixels. Space starts drawing a region, and Enter or Space finishes it."
+  },
+  "optSaveButtons": {
+    "message": "Save buttons"
+  },
+  "optMovablePanel": {
+    "message": "Drag the Save visible and Save full page buttons anywhere, and keep them there. Firefox keeps them in the top-right corner."
   },
   "optShortcut": {
     "message": "Keyboard shortcut"

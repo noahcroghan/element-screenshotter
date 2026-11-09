@@ -14,7 +14,12 @@ describe('normalizeSettings', () => {
 
   test('rejects invalid values', () => {
     expect(
-      normalizeSettings({ elementDetection: 'magic', showElementLabel: 'yes', arrowKeys: 'mouse' }),
+      normalizeSettings({
+        elementDetection: 'magic',
+        showElementLabel: 'yes',
+        arrowKeys: 'mouse',
+        movablePanel: 1,
+      }),
     ).toEqual(DEFAULT_SETTINGS);
   });
 
@@ -24,9 +29,15 @@ describe('normalizeSettings', () => {
         elementDetection: 'exact',
         showElementLabel: true,
         arrowKeys: 'pointer',
+        movablePanel: false,
         format: 'jpeg',
       }),
-    ).toEqual({ elementDetection: 'exact', showElementLabel: true, arrowKeys: 'pointer' });
+    ).toEqual({
+      elementDetection: 'exact',
+      showElementLabel: true,
+      arrowKeys: 'pointer',
+      movablePanel: false,
+    });
   });
 });
 

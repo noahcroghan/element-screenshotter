@@ -10,6 +10,7 @@ import {
   readClipboardPng,
   readPng,
   sleep,
+  type Rect,
 } from './harness';
 
 const BLUE: [number, number, number] = [0, 0, 255];
@@ -81,13 +82,6 @@ async function accel(key: KeyInput) {
   await page.keyboard.down(ACCEL);
   await page.keyboard.press(key);
   await page.keyboard.up(ACCEL);
-}
-
-/** Click a button in the "Save visible / Save full page" panel (top-right). */
-async function clickPanel(which: 'visible' | 'fullpage') {
-  const vw = await page.evaluate(() => document.documentElement.clientWidth);
-  // Full page is the right-hand button, visible the one to its left.
-  await page.mouse.click(which === 'fullpage' ? vw - 70 : vw - 180, 36);
 }
 
 describe('copy', () => {
@@ -183,7 +177,7 @@ describe('visible and full page', () => {
   test('Save full page shows a preview and downloads the whole page once', async () => {
     await open();
     await harness.start(page);
-    await clickPanel('fullpage');
+    await harness.clickPanel(page, 'fullpage');
     await harness.waitForState(page, 'preview', 60_000);
     await accel('s');
     const img = await readPng(await harness.nextDownload(60_000));
@@ -206,7 +200,7 @@ describe('visible and full page', () => {
       window.scrollTo(0, 300);
     });
     await harness.start(page);
-    await clickPanel('visible');
+    await harness.clickPanel(page, 'visible');
     await harness.waitForState(page, 'preview');
     await accel('s');
     const img = await readPng(await harness.nextDownload());
@@ -223,10 +217,83 @@ describe('visible and full page', () => {
   test('Retry in the preview returns to picking', async () => {
     await open();
     await harness.start(page);
-    await clickPanel('visible');
+    await harness.clickPanel(page, 'visible');
     await harness.waitForState(page, 'preview');
     await page.keyboard.press('Escape');
     await harness.waitForState(page, null);
+  });
+});
+
+describe('save panel', () => {
+  async function panel() {
+    const rect = (await harness.snapshot(page))?.panel;
+    if (!rect) throw new Error('the save panel is not shown');
+    return rect;
+  }
+
+  function expectSameRect(actual: Rect, expected: Rect) {
+    for (const edge of ['left', 'top', 'right', 'bottom'] as const) {
+      expect(actual[edge], edge).toBeCloseTo(expected[edge], 0);
+    }
+  }
+
+  async function drag(fromX: number, fromY: number, toX: number, toY: number) {
+    await page.mouse.move(fromX, fromY);
+    await page.mouse.down();
+    await page.mouse.move(toX, toY, { steps: 10 });
+    await page.mouse.up();
+  }
+
+  test('can be dragged anywhere, and stays there next time', async () => {
+    await open();
+    await harness.start(page);
+    const start = await panel();
+    // Grab the bar along its top.
+    await drag(start.left + 30, start.top + 6, start.left - 570, start.top + 406);
+    const moved = await panel();
+    expect(moved.left).toBeCloseTo(start.left - 600, 0);
+    expect(moved.top).toBeCloseTo(start.top + 400, 0);
+    expect((await harness.snapshot(page))?.state).toBe('crosshairs');
+
+    await page.keyboard.press('Escape');
+    await harness.waitForState(page, null);
+    await harness.start(page);
+    const reopened = await panel();
+    expect(reopened.left).toBeCloseTo(moved.left, 0);
+    expect(reopened.top).toBeCloseTo(moved.top, 0);
+  });
+
+  test('only the bar moves it, so a drag from a button does nothing', async () => {
+    await open();
+    await harness.start(page);
+    const start = await panel();
+    const buttonX = start.left + 50;
+    await drag(buttonX, start.bottom - 30, buttonX - 300, start.bottom + 170);
+    await sleep(300);
+    expect((await harness.snapshot(page))?.state).toBe('crosshairs');
+    expectSameRect(await panel(), start);
+
+    await harness.clickPanel(page, 'visible');
+    await harness.waitForState(page, 'preview');
+  });
+
+  test('stays in the top-right corner when the setting is off', async () => {
+    await worker.evaluate(() =>
+      Promise.all([
+        chrome.storage.sync.set({ movablePanel: false }),
+        chrome.storage.local.set({
+          panelAnchor: { horizontal: 'left', x: 40, vertical: 'bottom', y: 40 },
+        }),
+      ]),
+    );
+    await open();
+    await harness.start(page);
+    const vw = await page.evaluate(() => document.documentElement.clientWidth);
+    const start = await panel();
+    expect(start.right).toBeCloseTo(vw - 12, 0);
+    expect(start.top).toBeCloseTo(12, 0);
+    await drag(start.left + 30, start.top + 6, start.left - 270, start.top + 306);
+    expectSameRect(await panel(), start);
   });
 });
 

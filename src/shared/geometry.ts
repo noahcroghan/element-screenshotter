@@ -61,6 +61,40 @@ export function contains(outer: Rect, inner: Rect): boolean {
   );
 }
 
+/**
+ * Where a box sits, as its distance from the nearest side edge and the nearest
+ * top or bottom edge. A box near the bottom right stays there when the
+ * window is resized.
+ */
+export interface EdgeAnchor {
+  horizontal: 'left' | 'right';
+  x: number;
+  vertical: 'top' | 'bottom';
+  y: number;
+}
+
+export function anchorOf(rect: Rect, bounds: Rect): EdgeAnchor {
+  const left = rect.left - bounds.left;
+  const right = bounds.right - rect.right;
+  const top = rect.top - bounds.top;
+  const bottom = bounds.bottom - rect.bottom;
+  return {
+    horizontal: left <= right ? 'left' : 'right',
+    x: Math.min(left, right),
+    vertical: top <= bottom ? 'top' : 'bottom',
+    y: Math.min(top, bottom),
+  };
+}
+
+/** The rect of a box of `size` placed by `anchor`, kept inside `bounds`. */
+export function anchoredRect(anchor: EdgeAnchor, size: Size, bounds: Rect): Rect {
+  const left =
+    anchor.horizontal === 'left' ? bounds.left + anchor.x : bounds.right - anchor.x - size.width;
+  const top =
+    anchor.vertical === 'top' ? bounds.top + anchor.y : bounds.bottom - anchor.y - size.height;
+  return shiftInto({ left, top, right: left + size.width, bottom: top + size.height }, bounds);
+}
+
 /** True if every edge of the two rects is within `tolerance` pixels. */
 export function sameRect(first: Rect, second: Rect, tolerance = 0.5): boolean {
   return (

@@ -51,6 +51,8 @@ export interface Snapshot {
   labelShown: boolean;
   /** Where the pointer is drawn after the arrow keys moved it, if they did. */
   keyboardPointer: { x: number; y: number } | null;
+  /** The Save visible / Save full page panel, while it is shown. */
+  panel: Rect | null;
   selection: Rect | null;
   selectedElement: string | null;
 }
@@ -229,6 +231,17 @@ export class Harness {
       }
       return counter.__harnessClicks;
     });
+  }
+
+  /**
+   * Click "Save visible" or "Save full page". Full page is the right-hand
+   * button, visible the one to its left; both sit under the drag bar.
+   */
+  async clickPanel(page: Page, which: 'visible' | 'fullpage') {
+    const panel = (await this.snapshot(page))?.panel;
+    if (!panel) throw new Error('The save panel is not shown');
+    const centerX = which === 'fullpage' ? panel.right - 50 : panel.left + 50;
+    await page.mouse.click(centerX, panel.bottom - 30);
   }
 
   async snapshot(page: Page): Promise<Snapshot | null> {

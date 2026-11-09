@@ -153,6 +153,15 @@ On top of that, we add:
   element's tag, id, and classes plus its size. When it is off, the label
   stays in the DOM, visually hidden, so its live region still tells screen
   readers which element is highlighted.
+- A **movable Save visible / Save full page panel** (setting, on by
+  default). Firefox's panel sits in the browser chrome and only overlaps the
+  top of the page, but ours sits on the page and can cover what you want to
+  capture. It gets a bar along its top, like a window's title bar, and only
+  the bar drags it, so the buttons stay plain buttons. Its position is kept in
+  `chrome.storage.local` as the distance from the nearest side and the
+  nearest top or bottom edge, so it stays near the same corner when the
+  window is resized, and is kept inside the viewport. With the setting off it
+  stays in the top-right corner, like Firefox.
 
 ## Decisions and open questions
 

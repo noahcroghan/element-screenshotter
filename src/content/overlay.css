@@ -24,6 +24,7 @@
   --surface-active: #e0e0e6;
   --text: #15141a;
   --border: #cfcfd8;
+  --grip-hover: #8f8f9d;
   --shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 
   position: fixed;
@@ -129,17 +130,61 @@ kbd {
 
 /* ---- Save visible / Save full page panel ---- */
 
+/* Placed from script: top right by default, or wherever the user dragged it. */
 #panel {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  display: flex;
-  gap: 8px;
   padding: 8px;
-  border-radius: 8px;
+  /* The buttons' 4px radius plus the padding, so the corners are concentric. */
+  border-radius: 12px;
   background: var(--surface);
   box-shadow: var(--shadow);
   cursor: auto;
+}
+
+#panel-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* The bar to drag the panel by, across its top like a title bar. It can be
+   grabbed right up to the panel's edges, but its visible track is inset and
+   rounded like the buttons. */
+#panel-bar {
+  margin: -8px -8px 0;
+  /* 8px all round, the same as the panel's padding and the buttons' gap. */
+  padding: 8px;
+  border-radius: 12px 12px 0 0;
+  cursor: grab;
+}
+
+.bar-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  border-radius: 4px;
+}
+
+#panel-bar:hover .bar-track,
+#root.moving-panel .bar-track {
+  background: var(--surface-hover);
+}
+
+.grip {
+  width: 32px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+#panel-bar:hover .grip,
+#root.moving-panel .grip {
+  background: var(--grip-hover);
+}
+
+#root.moving-panel,
+#root.moving-panel * {
+  cursor: grabbing !important;
 }
 
 /* Icon above the label, sized as in Firefox's screenshots-buttons.css. */

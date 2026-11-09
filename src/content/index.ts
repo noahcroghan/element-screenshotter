@@ -7,7 +7,7 @@
 import type { ToContent } from '../shared/messages';
 import { loadSettings } from '../shared/settings';
 import { removeStaleHosts } from './host';
-import { loadLastSaveMethod, Overlay } from './overlay';
+import { loadRemembered, Overlay } from './overlay';
 
 interface ContentApi {
   toggle(): Promise<void>;
@@ -40,13 +40,13 @@ function init(): ContentApi {
     if (starting) return;
     starting = true;
     try {
-      const [settings, lastSaveMethod] = await Promise.all([loadSettings(), loadLastSaveMethod()]);
+      const [settings, remembered] = await Promise.all([loadSettings(), loadRemembered()]);
       overlay = new Overlay(
         settings,
         () => {
           overlay = null;
         },
-        lastSaveMethod,
+        remembered,
       );
       overlay.mount();
     } finally {

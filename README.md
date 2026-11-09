@@ -67,6 +67,8 @@ While the overlay is showing, use the buttons in the top-right corner:
 
 A preview opens with **Copy**, **Download**, **Retry**, and **Cancel**.
 
+If the buttons are in the way, drag them anywhere by the bar along their top. They stay where you put them next time.
+
 ### Copy or download
 
 With a selection or preview on screen:
@@ -87,6 +89,7 @@ Right-click the toolbar button and choose **Options**.
 - **Element detection.** Smart (the default, like Firefox), or Exact, which always starts from the element directly under the pointer.
 - **Element label.** Shows the highlighted element's tag, id, classes, and size next to it. Off by default, like Firefox. Screen readers announce the element either way.
 - **Arrow keys.** Move the highlight through the element tree (the default), or move the pointer, like Firefox. See [Capture an element](#capture-an-element).
+- **Save buttons.** Drag the Save visible and Save full page buttons anywhere, and keep them there. On by default. Turn it off to keep them in the top-right corner, like Firefox.
 - **Keyboard shortcut.** Shows the current shortcut, with a button to open the browser's shortcut page where you can change it.
 
 ## Permissions and privacy
@@ -99,7 +102,7 @@ The extension doesn't connect to the internet, collect data, or keep your screen
 | `scripting`    | To show the overlay on that tab.                                                                         |
 | `downloads`    | To save screenshots to your Downloads folder. Chrome shows this as "Manage your downloads".              |
 | `offscreen`    | To hand large images to the download manager (a background helper page with no UI).                      |
-| `storage`      | To remember your settings and whether you last copied or downloaded.                                     |
+| `storage`      | To remember your settings, whether you last copied or downloaded, and where you put the Save buttons.    |
 | `contextMenus` | For the **Take Screenshot** menu item.                                                                   |
 
 ## Limitations

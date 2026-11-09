@@ -19,6 +19,8 @@
 
 import { buildFilename } from '../shared/filename';
 import {
+  anchoredRect,
+  anchorOf,
   clamp,
   clampRect,
   height,
@@ -27,6 +29,7 @@ import {
   shiftInto,
   translate,
   width,
+  type EdgeAnchor,
   type Point,
   type Rect,
 } from '../shared/geometry';
@@ -62,6 +65,16 @@ type State =
 
 /** Minimum diagonal drag distance before a click becomes a drag (Firefox: 40). */
 const DRAG_THRESHOLD = 40;
+/** Where the save panel starts: Firefox's top-right corner. */
+const DEFAULT_PANEL_ANCHOR: EdgeAnchor = { horizontal: 'right', x: 12, vertical: 'top', y: 12 };
+
+interface PanelDrag {
+  pointerId: number;
+  start: Point;
+  /** The panel's rect when the press began. */
+  origin: Rect;
+  moved: boolean;
+}
 /** Auto-scroll when dragging within this many pixels of the viewport edge. */
 const SCROLL_BY_EDGE = 20;
 
@@ -170,6 +183,10 @@ export class Overlay {
   #keyboardPointer = false;
   #probeQueued = false;
 
+  // Save panel
+  #panelAnchor: EdgeAnchor = DEFAULT_PANEL_ANCHOR;
+  #panelDrag: PanelDrag | null = null;
+
   // Selection
   #selection: Corners = { x1: 0, y1: 0, x2: 0, y2: 0 };
   #selectedElement: Element | null = null;
@@ -184,10 +201,13 @@ export class Overlay {
   /** Firefox focuses the action the user picked last time. */
   readonly #lastSaveMethod: SaveMethod;
 
-  constructor(settings: Settings, onClose: () => void, lastSaveMethod: SaveMethod = 'download') {
+  constructor(settings: Settings, onClose: () => void, remembered: Partial<Remembered> = {}) {
     this.#settings = settings;
     this.#onClose = onClose;
-    this.#lastSaveMethod = lastSaveMethod;
+    this.#lastSaveMethod = remembered.lastSaveMethod ?? 'download';
+    if (settings.movablePanel && remembered.panelAnchor) {
+      this.#panelAnchor = remembered.panelAnchor;
+    }
     this.host = document.createElement(HOST_TAG);
     styleHost(this.host, { interactive: true });
     this.#shadow = this.host.attachShadow({ mode: 'closed' });
@@ -216,6 +236,7 @@ export class Overlay {
         : null,
       labelShown: labelBox.width > 1 && labelBox.height > 1,
       keyboardPointer: this.#ui.cursor.hidden ? null : this.#pointer,
+      panel: this.#ui.panel.hidden ? null : topLevelRect(this.#ui.panel),
       selection: this.#state === 'crosshairs' ? null : this.#selectionRect(),
       selectedElement: this.#selectedElement ? describeElement(this.#selectedElement) : null,
     };
@@ -259,11 +280,23 @@ export class Overlay {
       button('preview-cancel', 'cancel', { ghost: true, title: localize('cancelTitle') }),
     );
 
+    // When it can be moved, the panel has a bar on top to drag it by, like a
+    // window's title bar. The bar is for the mouse only.
     const panel = buildElement(
       'div',
       { id: 'panel' },
-      button('save-visible', 'saveVisible', { icon: 'saveVisible' }),
-      button('save-fullpage', 'saveFullPage', { icon: 'saveFullpage', primary: true }),
+      this.#settings.movablePanel &&
+        buildElement(
+          'div',
+          { id: 'panel-bar', title: localize('movePanelTitle'), 'aria-hidden': 'true' },
+          buildElement('div', { class: 'bar-track' }, buildElement('div', { class: 'grip' })),
+        ),
+      buildElement(
+        'div',
+        { id: 'panel-buttons' },
+        button('save-visible', 'saveVisible', { icon: 'saveVisible' }),
+        button('save-fullpage', 'saveFullPage', { icon: 'saveFullpage', primary: true }),
+      ),
     );
 
     const hover = buildElement('div', { id: 'hover', hidden: true });
@@ -537,6 +570,7 @@ export class Overlay {
       this.#cancelPointerGesture();
       return;
     }
+    if (this.#startPanelDrag(event, point)) return;
     if (this.#isUiControl(event.target)) return;
     const pagePoint = this.#pagePoint(point);
 
@@ -566,7 +600,13 @@ export class Overlay {
     const state = this.#state;
     const before = this.#pointer;
     const point = this.#trackPointer(event);
-    if (state === 'crosshairs') {
+    // The button was released somewhere we didn't hear about.
+    if (this.#panelDrag && (event.buttons & 1) === 0) {
+      this.#endPanelDrag(this.#panelDrag, this.#panelDrag.pointerId);
+    }
+    if (this.#panelDrag) {
+      this.#dragPanel(this.#panelDrag, point);
+    } else if (state === 'crosshairs') {
       if (point === before) return;
       this.#drawEyes(point.x, point.y);
       this.#queueProbe();
@@ -589,6 +629,10 @@ export class Overlay {
   }
 
   #onPointerUp(event: PointerEvent) {
+    if (this.#panelDrag) {
+      this.#endPanelDrag(this.#panelDrag, event.pointerId);
+      return;
+    }
     if (this.#ui.root.hasPointerCapture(event.pointerId)) {
       this.#ui.root.releasePointerCapture(event.pointerId);
     }
@@ -744,6 +788,7 @@ export class Overlay {
     this.#metrics = measurePage();
     if (this.#state === 'crosshairs') {
       this.#setHover(null);
+      this.#placePanel();
     } else if (this.#state === 'selected') {
       this.#selection = cornersOf(shiftInto(this.#selectionRect(), this.#metrics.bounds));
       this.#drawSelection();
@@ -773,6 +818,7 @@ export class Overlay {
     const selecting = next === 'dragging' || next === 'selected' || next === 'resizing';
     ui.preview.hidden = !crosshairs;
     ui.panel.hidden = !crosshairs;
+    this.#placePanel();
     ui.hover.hidden = !crosshairs || !this.#hoverElement;
     ui.hoverLabel.hidden = ui.hover.hidden;
     ui.selection.hidden = !selecting && !(next === 'capturing' && previous !== 'crosshairs');
@@ -950,6 +996,54 @@ export class Overlay {
     // Neither above nor below fits: put it inside the element's top edge.
     const top = preferred + labelHeight > clientHeight - 4 ? Math.max(4, rect.top + 4) : preferred;
     place(hoverLabel, { left: clamp(rect.left, 4, Math.max(4, clientWidth - 220)), top });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Save panel: the user can drag it out of the way, and it stays there.
+
+  /** Put the panel where its anchor says, inside the viewport. */
+  #placePanel() {
+    const { panel, root } = this.#ui;
+    if (panel.hidden) return;
+    const bounds = root.getBoundingClientRect();
+    const box = panel.getBoundingClientRect();
+    const rect = anchoredRect(this.#panelAnchor, box, bounds);
+    place(panel, { left: rect.left - bounds.left, top: rect.top - bounds.top });
+  }
+
+  /** A press on the panel's bar starts a drag. Returns true when it did. */
+  #startPanelDrag(event: PointerEvent, point: Point): boolean {
+    const { panel, root } = this.#ui;
+    const onBar = event.target instanceof Element && !!event.target.closest('#panel-bar');
+    if (!onBar || this.#state !== 'crosshairs') return false;
+    this.#panelDrag = {
+      pointerId: event.pointerId,
+      start: point,
+      origin: panel.getBoundingClientRect(),
+      moved: false,
+    };
+    root.setPointerCapture(event.pointerId);
+    root.classList.add('moving-panel');
+    return true;
+  }
+
+  #dragPanel(drag: PanelDrag, point: Point) {
+    const { panel, root } = this.#ui;
+    const dx = point.x - drag.start.x;
+    const dy = point.y - drag.start.y;
+    drag.moved ||= dx !== 0 || dy !== 0;
+    const bounds = root.getBoundingClientRect();
+    const moved = shiftInto(translate(drag.origin, dx, dy), bounds);
+    this.#panelAnchor = anchorOf(moved, bounds);
+    place(panel, { left: moved.left - bounds.left, top: moved.top - bounds.top });
+  }
+
+  #endPanelDrag(drag: PanelDrag, pointerId: number) {
+    const root = this.#ui.root;
+    this.#panelDrag = null;
+    if (root.hasPointerCapture(pointerId)) root.releasePointerCapture(pointerId);
+    root.classList.remove('moving-panel');
+    if (drag.moved) rememberPanelAnchor(this.#panelAnchor);
   }
 
   #drawEyes(clientX: number, clientY: number) {
@@ -1313,10 +1407,37 @@ function sizeText(rect: Rect): string {
 
 export type SaveMethod = 'copy' | 'download';
 const LAST_SAVE_METHOD_KEY = 'lastSaveMethod';
+const PANEL_ANCHOR_KEY = 'panelAnchor';
 
-export async function loadLastSaveMethod(): Promise<SaveMethod> {
-  const { [LAST_SAVE_METHOD_KEY]: value } = await chrome.storage.local.get(LAST_SAVE_METHOD_KEY);
-  return value === 'copy' ? 'copy' : 'download';
+/** What the overlay remembers between uses, in chrome.storage.local. */
+export interface Remembered {
+  lastSaveMethod: SaveMethod;
+  panelAnchor: EdgeAnchor | null;
+}
+
+export async function loadRemembered(): Promise<Remembered> {
+  const stored = await chrome.storage.local.get([LAST_SAVE_METHOD_KEY, PANEL_ANCHOR_KEY]);
+  return {
+    lastSaveMethod: stored[LAST_SAVE_METHOD_KEY] === 'copy' ? 'copy' : 'download',
+    panelAnchor: parseAnchor(stored[PANEL_ANCHOR_KEY]),
+  };
+}
+
+function parseAnchor(raw: unknown): EdgeAnchor | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const { horizontal, x, vertical, y } = raw as Record<string, unknown>;
+  const valid =
+    (horizontal === 'left' || horizontal === 'right') &&
+    (vertical === 'top' || vertical === 'bottom') &&
+    typeof x === 'number' &&
+    typeof y === 'number' &&
+    Number.isFinite(x) &&
+    Number.isFinite(y);
+  return valid ? { horizontal, x, vertical, y } : null;
+}
+
+function rememberPanelAnchor(anchor: EdgeAnchor) {
+  void chrome.storage.local.set({ [PANEL_ANCHOR_KEY]: anchor }).catch(() => undefined);
 }
 
 function rememberSaveMethod(method: SaveMethod) {

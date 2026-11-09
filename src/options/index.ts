@@ -6,11 +6,13 @@ const status = document.getElementById('status') as HTMLParagraphElement;
 const detection = form.elements.namedItem('elementDetection') as RadioNodeList;
 const showLabel = form.elements.namedItem('showElementLabel') as HTMLInputElement;
 const arrowKeys = form.elements.namedItem('arrowKeys') as RadioNodeList;
+const movablePanel = form.elements.namedItem('movablePanel') as HTMLInputElement;
 
 function showSettings(settings: Settings) {
   detection.value = settings.elementDetection;
   showLabel.checked = settings.showElementLabel;
   arrowKeys.value = settings.arrowKeys;
+  movablePanel.checked = settings.movablePanel;
 }
 
 function localizePage() {
@@ -26,6 +28,7 @@ async function persist() {
     elementDetection: detection.value as Settings['elementDetection'],
     showElementLabel: showLabel.checked,
     arrowKeys: arrowKeys.value as Settings['arrowKeys'],
+    movablePanel: movablePanel.checked,
   });
   showSettings(saved);
   status.textContent = localize('optSaved');

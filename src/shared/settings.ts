@@ -18,12 +18,18 @@ export interface Settings {
    * "pointer" moves the pointer, like Firefox, and Space starts a region.
    */
   arrowKeys: ArrowKeys;
+  /**
+   * Let the user drag the Save visible / Save full page panel anywhere, and
+   * remember where. Off keeps it in the top-right corner, like Firefox.
+   */
+  movablePanel: boolean;
 }
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   elementDetection: 'smart',
   showElementLabel: false,
   arrowKeys: 'navigate',
+  movablePanel: true,
 });
 
 /** Coerce whatever is in storage into a valid Settings object. */
@@ -42,6 +48,10 @@ export function normalizeSettings(raw: unknown): Settings {
         : DEFAULT_SETTINGS.showElementLabel,
     arrowKeys:
       arrowKeys === 'navigate' || arrowKeys === 'pointer' ? arrowKeys : DEFAULT_SETTINGS.arrowKeys,
+    movablePanel:
+      typeof stored.movablePanel === 'boolean'
+        ? stored.movablePanel
+        : DEFAULT_SETTINGS.movablePanel,
   };
 }
 

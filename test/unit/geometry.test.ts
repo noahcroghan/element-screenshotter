@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import {
+  anchoredRect,
+  anchorOf,
   clampOutputSize,
   clampRect,
   intersect,
@@ -88,6 +90,48 @@ describe('rect helpers', () => {
         { left: 0, top: 0, right: 100, bottom: 100 },
       ),
     ).toEqual({ left: 80, top: 0, right: 100, bottom: 20 });
+  });
+});
+
+describe('edge anchors', () => {
+  const bounds = { left: 0, top: 0, right: 1000, bottom: 800 };
+  const size = { width: 200, height: 80 };
+
+  test('measure from the nearest edges', () => {
+    expect(anchorOf({ left: 788, top: 12, right: 988, bottom: 92 }, bounds)).toEqual({
+      horizontal: 'right',
+      x: 12,
+      vertical: 'top',
+      y: 12,
+    });
+    expect(anchorOf({ left: 30, top: 700, right: 230, bottom: 780 }, bounds)).toEqual({
+      horizontal: 'left',
+      x: 30,
+      vertical: 'bottom',
+      y: 20,
+    });
+  });
+
+  test('round-trip, and follow their edges when the bounds change', () => {
+    const rect = { left: 30, top: 700, right: 230, bottom: 780 };
+    const anchor = anchorOf(rect, bounds);
+    expect(anchoredRect(anchor, size, bounds)).toEqual(rect);
+    expect(anchoredRect(anchor, size, { ...bounds, bottom: 600 })).toEqual({
+      left: 30,
+      top: 500,
+      right: 230,
+      bottom: 580,
+    });
+  });
+
+  test('stay inside bounds that got too small', () => {
+    const anchor = { horizontal: 'left', x: 900, vertical: 'top', y: 10 } as const;
+    expect(anchoredRect(anchor, size, bounds)).toEqual({
+      left: 800,
+      top: 10,
+      right: 1000,
+      bottom: 90,
+    });
   });
 });
 
