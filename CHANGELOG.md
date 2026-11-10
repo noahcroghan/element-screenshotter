@@ -21,7 +21,7 @@ Changes since the last release.
 ### Fixed
 
 - The highlight and its label no longer draw over the **Save visible** and **Save full page** buttons when the highlighted element runs under them.
-- Opening the overlay with the keyboard shortcut highlights the element under the mouse straight away, without moving the mouse. The arrow keys then start from the mouse, not the middle of the page.
+- Opening the overlay with the keyboard shortcut highlights the element under the mouse straight away, without moving the mouse. The arrow keys then start from the mouse instead of the middle of the page.
 - Scrolling while a long capture is in progress no longer puts pieces of the page in the wrong place. The page can't be scrolled until the capture is done.
 
 ## [1.0.0] - 2026-11-05

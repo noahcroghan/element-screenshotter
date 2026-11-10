@@ -1,6 +1,6 @@
 # Element Screenshotter
 
-A screenshot tool for Chromium browsers, modelled on the one built into Firefox. Point at part of a page and it highlights the element under your cursor. Click to capture just that element, or drag to capture any region. You can also save the visible part of the page or the whole thing, top to bottom.
+A screenshot tool for Chromium browsers, modelled on the one built into Firefox. Point at part of a page and it highlights the element under your cursor. Click to capture just that element, or drag to capture any region. You can also save the visible part of the page or the full page, top to bottom.
 
 It works in Chrome, Edge, Brave, Vivaldi, Helium, and other Chromium-based browsers (version 116 or newer).
 
@@ -63,7 +63,7 @@ Click outside the selection, or press `Esc`, to start over.
 While the overlay is showing, use the buttons in the top-right corner:
 
 - **Save visible** captures what's on screen right now.
-- **Save full page** captures the entire page, scrolling through it automatically.
+- **Save full page** captures the full page, scrolling through it automatically.
 
 A preview opens with **Copy**, **Download**, **Retry**, and **Cancel**.
 
@@ -86,12 +86,12 @@ Screenshots are saved as PNG files named like `Screenshot 2025-01-31 at 14-05-09
 
 Right-click the toolbar button and choose **Options**.
 
-- **Element detection.** Smart (the default), or Exact, which always starts from the element directly under the pointer.
-- **Element label.** Shows the highlighted element's tag, id, classes, and size next to it. Off by default. Screen readers announce the element either way.
-- **Arrow keys.** Move the highlight through the element tree (the default), or move the pointer. See [Capture an element](#capture-an-element).
-- **Save buttons.** Drag the Save visible and Save full page buttons anywhere, and keep them there. On by default. Turn it off to keep them in the top-right corner.
-- **Cursor.** Use the extension's crosshair instead of the system cursor. Off by default. The arrow keys can't move the real cursor, so they move a crosshair the extension draws, which may not look like your system's. Turn this on to use that crosshair for the mouse too.
-- **Keyboard shortcut.** Shows the current shortcut, with a button to open the browser's shortcut page where you can change it.
+- **Element detection** is Smart (the default) or Exact. Exact always starts from the element directly under the pointer.
+- **Element label** shows the highlighted element's tag, id, classes, and size next to it. It's off by default. Screen readers announce the element either way.
+- **Arrow keys** sets whether the arrow keys move the highlight through the element tree (the default) or move the pointer. See [Capture an element](#capture-an-element).
+- **Save buttons** lets you drag the Save visible and Save full page buttons anywhere, and keeps them there. It's on by default. Turn it off to keep them in the top-right corner.
+- **Cursor** uses the extension's crosshair instead of the system cursor. It's off by default. The arrow keys can't move the real cursor, so they move a crosshair the extension draws, which may not look like your system's. Turn this on to use that crosshair for the mouse too.
+- **Keyboard shortcut** shows the current shortcut, with a button to open the browser's shortcut page where you can change it.
 
 ## Permissions and privacy
 
@@ -102,23 +102,23 @@ The extension doesn't connect to the internet, collect data, or keep your screen
 | `activeTab`    | To read and capture the current tab, only after you click the button, use the shortcut, or use the menu. |
 | `scripting`    | To show the overlay on that tab.                                                                         |
 | `downloads`    | To save screenshots to your Downloads folder. Chrome shows this as "Manage your downloads".              |
-| `offscreen`    | To hand large images to the download manager (a background helper page with no UI).                      |
+| `offscreen`    | To pass large images to the download manager (a background helper page with no UI).                      |
 | `storage`      | To remember your settings, whether you last copied or downloaded, and where you put the Save buttons.    |
 | `contextMenus` | For the **Take Screenshot** menu item.                                                                   |
 
 ## Limitations
 
-- **Some pages can't be captured.** Browsers don't let extensions run on their own pages (`chrome://` pages, the extensions page), the Chrome Web Store, other extensions' pages, or the built-in PDF viewer. The toolbar button shows a red `!` when this happens.
-- **Copying needs HTTPS.** Browsers only allow copying images to the clipboard on secure pages. On plain `http://` sites, use Download instead.
-- **Long captures take a moment.** Chromium allows two viewport captures per second, so a page that's ten screens tall takes about five seconds. The toolbar badge shows progress, and the page can't be scrolled until it's done.
-- **Fixed and sticky elements** (headers, cookie banners, chat buttons) appear once, at the top of a full-page capture. In stitched element or region captures they're left out unless they were already on screen where you selected.
-- **Pages that scroll an inner panel** instead of the window (some web apps do this) can only be captured one screen at a time.
-- **Very large captures are cropped** to 32,766 pixels per side and about 125 million pixels in total. You'll be told when that happens.
+- Browsers don't let extensions run on their own pages (`chrome://` pages, the extensions page), the Chrome Web Store, other extensions' pages, or the built-in PDF viewer. On those pages the toolbar button shows a red `!`.
+- Browsers only allow copying images to the clipboard on secure pages. On plain `http://` sites, use Download instead.
+- Chromium allows two viewport captures per second, so a page that's ten screens tall takes about five seconds to capture. The toolbar badge shows progress, and the page can't be scrolled until it's done.
+- Fixed and sticky elements (headers, cookie banners, chat buttons) appear once, at the top of a full-page capture. In stitched element or region captures they're left out unless they were already on screen where you selected.
+- Pages that scroll an inner panel instead of the window (some web apps do this) can only be captured one screen at a time.
+- Very large captures are cropped to 32,766 pixels per side and about 125 million pixels in total. You'll be told when that happens.
 - Pages that change as you scroll, like infinite feeds or lazy-loaded images, may look slightly different from what you saw.
 
 ## Credits
 
-The interaction design is Firefox Screenshots'. The element-picking heuristic, the region and handle behaviour, the little face on the overlay, and the "Save visible" and "Save full page" icons are adapted from Mozilla's code in [`browser/components/screenshots`](https://github.com/mozilla-firefox/firefox/tree/main/browser/components/screenshots).
+The design and behaviour come from Firefox Screenshots, the screenshot tool built into Firefox. The element-picking heuristic, the region and handle behaviour, the little face on the overlay, and the "Save visible" and "Save full page" icons are adapted from Mozilla's code in [`browser/components/screenshots`](https://github.com/mozilla-firefox/firefox/tree/main/browser/components/screenshots).
 
 The code was generated by an AI coding agent, as noted above. It has unit tests and end-to-end tests that run in a real browser (see [docs/development.md](docs/development.md)), but treat it like any young project and report problems you find.
 

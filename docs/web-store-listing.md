@@ -22,12 +22,12 @@ The name and the short summary come from the manifest (`extName` and `extDescrip
 ```text
 Take a screenshot of exactly the part of a page you want.
 
-Point at the page and the element under your pointer is highlighted. Click to capture just that element, even if it is taller than the window. Or drag to capture any region, then fine-tune it with the handles or the arrow keys. You can also save the visible part of the page, or the whole page from top to bottom.
+Point at the page and the element under your pointer is highlighted. Click to capture just that element, even if it is taller than the window. Or drag to capture any region, then fine-tune it with the handles or the arrow keys. You can also save the visible part of the page, or the full page from top to bottom.
 
 A preview lets you copy the screenshot to the clipboard or download it as a PNG file.
 
 Features:
-- Smart element picking: skips headings in favour of the section they head, and ignores wrappers bigger than the screen.
+- Element picking skips headings in favour of the section they head, and ignores wrappers bigger than the screen.
 - Arrow keys move the highlight to the parent, child, or sibling element, so any element can be reached.
 - Works inside shadow DOM and same-site frames.
 - Long elements and full pages are scrolled and stitched into one image.
@@ -49,7 +49,7 @@ Browsers don't let extensions capture their own pages (such as settings pages), 
 **Single purpose description:**
 
 ```text
-Take screenshots of a web page: an element, a region the user selects, the visible area, or the whole page, which the user then copies or downloads.
+Take screenshots of a web page: an element, a region the user selects, the visible area, or the full page, which the user then copies or downloads.
 ```
 
 **Permission justifications:**
@@ -67,7 +67,7 @@ There are no host permissions, so no host permission justification is needed.
 
 **Remote code:** No, I am not using remote code. Everything is bundled in the package.
 
-**Data usage:** tick **Website content**. Chrome counts screenshots of a page as user data even when they never leave the device ([User Data FAQ](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq), questions 2 to 4). The page title also goes into the file name. Leave every other data type unticked: settings hold no personal data, and nothing else is read. Then tick all three certifications (no selling or transfer to third parties, no unrelated use, no creditworthiness use); all are true.
+**Data usage:** tick **Website content**. Chrome counts screenshots of a page as user data even when they never leave the device ([User Data FAQ](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq), questions 2 to 4). The page title also goes into the file name. Leave every other data type unticked: settings contain no personal data, and nothing else is read. Then tick all three certifications (no selling or transfer to third parties, no unrelated use, no creditworthiness use); all are true.
 
 **Privacy policy URL:** the public URL where [privacy-policy.md](privacy-policy.md) is hosted. Chrome requires one even though data stays on the device (User Data FAQ, question 14).
 

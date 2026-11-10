@@ -1,12 +1,12 @@
 # Contributing
 
-Thanks for helping. Please note that this project is AI-generated: an AI coding agent wrote the code and docs (see the [README](README.md)). Contributions from people are welcome all the same, and they get the same review.
+Thanks for helping. This project is AI-generated: an AI coding agent wrote the code and docs (see the [README](README.md)). Contributions from people are welcome all the same, and they get the same review.
 
 ## Before you start
 
-- **Bugs and ideas** go in [issues](../../issues/new/choose). The forms ask for what's needed to reproduce a bug.
-- **Security problems** must not go in public issues. See the [security policy](SECURITY.md).
-- **Scope.** The goal is Firefox Screenshots' behaviour in Chromium browsers. Bug fixes and closer matches to Firefox are welcome. Features or settings that Firefox doesn't have usually aren't, so open an issue to discuss those before writing code.
+- Report bugs and ideas in [issues](../../issues/new/choose). The forms ask for what's needed to reproduce a bug.
+- Don't report security problems in public issues. See the [security policy](SECURITY.md).
+- The goal is to work like Firefox Screenshots in Chromium browsers. Bug fixes and closer matches to Firefox are welcome. Features or settings that Firefox doesn't have usually aren't, so open an issue to discuss those before writing code.
 
 ## Making a change
 
