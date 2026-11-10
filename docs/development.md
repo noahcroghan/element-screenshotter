@@ -192,7 +192,7 @@ For a local build to share without releasing, run `pnpm package` and use `artifa
 
 ## Web stores
 
-The Chrome Web Store and Edge Add-ons listings are prepared in the repository, but the owner creates the accounts, uploads, and submits.
+The Chrome Web Store and Edge Add-ons listings are prepared in the repository, but the owner creates the accounts, uploads, and submits. [web-store-listing.md](web-store-listing.md) has the listing text, permission justifications, and the store requirements with links. [privacy-policy.md](privacy-policy.md) is the privacy policy. When permissions or data handling change, update both of them and the README's "Permissions and privacy" section together.
 
 ### Icons
 
