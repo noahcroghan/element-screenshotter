@@ -163,6 +163,24 @@ describe('regions', () => {
     expect(snap?.selection).toEqual({ left: 120, top: 160, right: 300, bottom: 260 });
   });
 
+  test('the action buttons win over the resize handles that reach over them', async () => {
+    await open();
+    await harness.start(page);
+    await clickAt(150, 180);
+    const snap = await harness.waitForState(page, 'selected');
+    const bar = snap?.buttons;
+    if (!bar || !snap.selection) throw new Error('no action buttons');
+    // Download is the right-hand button. Press its top, which lies within
+    // reach of the bottom edge and the bottom-right corner handle.
+    const pressY = bar.top + 8;
+    expect(pressY).toBeLessThan(snap.selection.bottom + 30);
+    await clickAt(bar.right - 20, pressY);
+    await harness.waitForState(page, null, 5000);
+    const img = await readPng(await harness.nextDownload());
+    expect(img.width).toBe(Math.round(120 * dpr));
+    expect(img.height).toBe(Math.round(60 * dpr));
+  });
+
   test('clicking outside the selection goes back to picking', async () => {
     await open();
     await harness.start(page);

@@ -444,6 +444,8 @@ kbd {
   background: var(--surface);
   box-shadow: var(--shadow);
   cursor: auto;
+  /* Above the mover targets, which reach 30px past the selection. */
+  z-index: 4;
 }
 
 /* ---- Buttons ---- */

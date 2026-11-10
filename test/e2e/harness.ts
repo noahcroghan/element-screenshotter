@@ -55,6 +55,8 @@ export interface Snapshot {
   drawnCursor: { x: number; y: number } | null;
   /** The Save visible / Save full page panel, while it is shown. */
   panel: Rect | null;
+  /** The Copy / Download bar under the selection, while it is shown. */
+  buttons: Rect | null;
   selection: Rect | null;
   selectedElement: string | null;
 }

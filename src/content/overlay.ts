@@ -242,6 +242,7 @@ export class Overlay {
       keyboardPointer: this.#keyboardPointerShown() ? this.#pointer : null,
       drawnCursor: this.#ui.cursor.hidden ? null : this.#cursorPoint(),
       panel: this.#ui.panel.hidden ? null : topLevelRect(this.#ui.panel),
+      buttons: this.#ui.buttons.hidden ? null : topLevelRect(this.#ui.buttons),
       selection: this.#state === 'crosshairs' ? null : this.#selectionRect(),
       selectedElement: this.#selectedElement ? describeElement(this.#selectedElement) : null,
     };
