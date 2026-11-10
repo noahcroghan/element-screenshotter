@@ -64,3 +64,14 @@ test('the options page is localised and saves changes', async () => {
   expect(await page.$eval('input[name="ownCursor"]', (box) => box.checked)).toBe(true);
   await page.close();
 });
+
+test('the options page fits the chrome://extensions dialog without scrolling', async () => {
+  // Chrome caps the dialog at 640px, and its title bar takes about 70px of that.
+  const page = await harness.browser.newPage();
+  await page.setViewport({ width: 460, height: 900 });
+  await page.goto(`chrome-extension://${harness.extension.id}/options.html`);
+  await page.waitForFunction(() => document.querySelector('#shortcut')?.textContent);
+  const height = await page.evaluate(() => document.body.getBoundingClientRect().height);
+  expect(height).toBeLessThanOrEqual(570);
+  await page.close();
+});

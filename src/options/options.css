@@ -10,7 +10,7 @@
 
 body {
   margin: 0;
-  padding: 16px 20px 24px;
+  padding: 12px 20px 16px;
   min-width: 420px;
 }
 
@@ -19,8 +19,8 @@ main {
 }
 
 fieldset {
-  margin: 0 0 16px;
-  padding: 12px 14px;
+  margin: 0 0 12px;
+  padding: 6px 14px 10px;
   border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
   border-radius: 8px;
 }
@@ -53,6 +53,10 @@ kbd {
   font:
     1em ui-monospace,
     monospace;
+}
+
+#shortcut {
+  margin: 4px 0 8px;
 }
 
 #status {
