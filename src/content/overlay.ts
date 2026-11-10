@@ -453,6 +453,9 @@ export class Overlay {
     on('pointerdown', (event) => {
       this.#onPointerDown(event);
     });
+    on('pointerover', (event) => {
+      this.#onPointerOver(event);
+    });
     on('pointermove', (event) => {
       this.#onPointerMove(event);
     });
@@ -472,6 +475,8 @@ export class Overlay {
       'pointermove',
       'pointerup',
       'pointercancel',
+      'pointerover',
+      'pointerout',
       'click',
       'dblclick',
       'auxclick',
@@ -594,6 +599,15 @@ export class Overlay {
       this.#ui.root.setPointerCapture(event.pointerId);
       this.#setState('resizing');
     }
+  }
+
+  /**
+   * Chrome fires pointerover when the overlay appears under a mouse that
+   * isn't moving. Until the mouse moves, that is the only way to learn where
+   * it is, so the pointer starts there instead of in the middle.
+   */
+  #onPointerOver(event: PointerEvent) {
+    if (!this.#pointer) this.#onPointerMove(event);
   }
 
   #onPointerMove(event: PointerEvent) {

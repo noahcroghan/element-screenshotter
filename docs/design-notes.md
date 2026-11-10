@@ -153,6 +153,11 @@ On top of that, we add:
   at a new position hands control back to the mouse. Events that repeat the
   mouse's last position don't, so a click without moving the mouse acts where
   the keys put the pointer.
+- **The mouse's position before it moves.** Pages can't ask where the mouse
+  is, but Chrome fires `pointerover` with its position when the overlay
+  appears under it. We use that, so the highlight and the arrow keys start
+  at the mouse. Opened from the toolbar button, the mouse isn't on the page
+  and nothing fires, so the arrow keys start in the middle of the viewport.
 - An **"exact" mode** (setting) that starts at the element under the cursor
   instead of the heuristic's choice.
 - **Shadow DOM piercing**, including closed roots via

@@ -458,6 +458,16 @@ describe('settings', () => {
     expect(snap?.hover?.label).toBe('div#inner');
   });
 
+  test('pointer mode: the pointer starts where the mouse is, even if it never moved', async () => {
+    await worker.evaluate(() => chrome.storage.sync.set({ arrowKeys: 'pointer' }));
+    await open();
+    await page.mouse.move(150, 180); // before the overlay exists
+    await harness.start(page);
+    await expect.poll(async () => (await harness.snapshot(page))?.hover?.label).toBe('div#inner');
+    await page.keyboard.press('ArrowRight');
+    expect((await harness.snapshot(page))?.keyboardPointer).toEqual({ x: 151, y: 180 });
+  });
+
   test('pointer mode: Enter selects the element under the pointer', async () => {
     await worker.evaluate(() => chrome.storage.sync.set({ arrowKeys: 'pointer' }));
     await open();
