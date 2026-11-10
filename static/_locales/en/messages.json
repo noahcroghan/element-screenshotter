@@ -105,7 +105,7 @@
     "message": "Element label"
   },
   "optShowElementLabel": {
-    "message": "Show the highlighted element's tag, id, classes, and size"
+    "message": "Display a tooltip showing the highlighted element's tag, id, classes, and size"
   },
   "optArrowKeys": {
     "message": "Arrow keys"
