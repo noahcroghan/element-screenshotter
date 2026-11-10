@@ -10,7 +10,7 @@ Thanks for helping. This project is AI-generated: an AI coding agent wrote the c
 
 ## Making a change
 
-[docs/development.md](docs/development.md) covers setup, tests, and conventions, and [docs/design-notes.md](docs/design-notes.md) explains how the extension works. In short:
+[The development guide](docs/development.md) covers setup, tests, and conventions, and [the design notes](docs/design-notes.md) explain how the extension works. In short:
 
 - Use [pnpm](https://pnpm.io/), not npm or yarn.
 - Run `pnpm check` before each commit, and `pnpm test:e2e` when behaviour changes.
@@ -18,7 +18,7 @@ Thanks for helping. This project is AI-generated: an AI coding agent wrote the c
 - When behaviour changes, update the README and the docs in the same pull request.
 - Keep prose plain and ASCII-only.
 
-Coding agents should also read [AGENTS.md](AGENTS.md).
+Coding agents should also read [the notes for AI agents](AGENTS.md).
 
 ## Pull requests
 

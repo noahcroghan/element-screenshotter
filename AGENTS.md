@@ -1,6 +1,6 @@
 # Notes for AI agents
 
-Human-facing docs come first: [README.md](README.md) for users, [docs/development.md](docs/development.md) for setup, tests, and conventions, and [docs/design-notes.md](docs/design-notes.md) for architecture and decisions. Keep all three accurate when behaviour changes.
+Human-facing docs come first: [the README](README.md) for users, [the development guide](docs/development.md) for setup, tests, and conventions, and [the design notes](docs/design-notes.md) for architecture and decisions. Keep all three accurate when behaviour changes.
 
 ## Ground rules
 

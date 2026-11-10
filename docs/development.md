@@ -1,6 +1,6 @@
 # Development
 
-How to build, run, and test the extension, and what to know before changing it. For how it works inside, read [design-notes.md](design-notes.md).
+How to build, run, and test the extension, and what to know before changing it. For how it works inside, read [the design notes](design-notes.md).
 
 Planned work is tracked as issues on the [project board](https://github.com/users/noahcroghan/projects/5), grouped by status and tagged with a priority (P1 to P3) and an area. Issues labelled `blocked` say what they are waiting for.
 
@@ -164,7 +164,7 @@ Some features are free only for public repositories. The workflows check `github
 | Release provenance (attestation) | Step skipped                | Zip and `SHA256SUMS.txt` attested |
 | Pushes to `main` and releases    | Every OS (no change)        | Every OS (no change)              |
 
-A skipped job still counts as passing. The settings that have to be changed by hand on the day are in [going-public.md](going-public.md).
+A skipped job still counts as passing. The settings that have to be changed by hand on the day are in [the going-public checklist](going-public.md).
 
 ## Releasing
 
@@ -192,7 +192,7 @@ For a local build to share without releasing, run `pnpm package` and use `artifa
 
 ## Web stores
 
-The Chrome Web Store and Edge Add-ons listings are prepared in the repository, but the owner creates the accounts, uploads, and submits. [web-store-listing.md](web-store-listing.md) has the listing text, permission justifications, and the store requirements with links. [privacy-policy.md](privacy-policy.md) is the privacy policy. When permissions or data handling change, update both of them and the README's "Permissions and privacy" section together.
+The Chrome Web Store and Edge Add-ons listings are prepared in the repository, but the owner creates the accounts, uploads, and submits. [The web store listing](web-store-listing.md) has the listing text, permission justifications, and the store requirements with links, and the stores link to [the privacy policy](privacy-policy.md). When permissions or data handling change, update both of them and the README's "Permissions and privacy" section together.
 
 ### Icons
 

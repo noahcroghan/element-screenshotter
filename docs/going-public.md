@@ -20,7 +20,7 @@ The commands use the [GitHub CLI](https://cli.github.com/) from a clone of the r
 
 - [ ] Read through issues, pull requests (open and closed), and release notes for anything private. Their comments become public too. (Checked on 2026-11-07, issues and pull requests #1 to #18: nothing private.)
 - [ ] Remember that Actions run logs and uploaded artifacts become public. The workflows use no secrets, and the e2e artifacts only show test pages.
-- [ ] Check that the README, [CONTRIBUTING.md](../CONTRIBUTING.md), and [SECURITY.md](../SECURITY.md) still match how the project works.
+- [ ] Check that the README, [the contributing guide](../CONTRIBUTING.md), and [the security policy](../SECURITY.md) still match how the project works.
 - [ ] Open **New issue** and check that the chooser lists **Bug report**, **Feature request**, and **Report a security vulnerability**. Then open any compare page, for example <https://github.com/noahcroghan/element-screenshotter/compare>, pick a branch, and check that the pull request body is prefilled from the template.
 
 ## Flip
