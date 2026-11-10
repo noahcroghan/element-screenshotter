@@ -197,3 +197,22 @@ The Chrome Web Store and Edge Add-ons listings are prepared in the repository, b
 ### Icons
 
 There are two sources in `static/icons/`. `icon-toolbar.svg` is drawn on a 16 px grid and fills its square, for the 16 and 32 px toolbar icons. `icon.svg` follows the Chrome Web Store guideline of 96x96 artwork inside 16 px of transparent padding, for the 48 and 128 px icons. Run `pnpm icons` after editing either one.
+
+### Upload workflow
+
+[`.github/workflows/store-upload.yml`](../.github/workflows/store-upload.yml) is started by hand from the Actions tab with a release tag and a store (`chrome`, `edge`, or `both`). It downloads that release's zip, checks it against `SHA256SUMS.txt`, and uploads it as a draft. It never submits for review or publishes; do that in each store's dashboard. The item must already exist in the store, because neither API creates new items.
+
+The job runs in a `web-store` environment. Give the environment required reviewers so each run needs approval, and add these environment secrets:
+
+| Secret              | Where it comes from                                                                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CWS_CLIENT_ID`     | OAuth client in a Google Cloud project with the Chrome Web Store API ([guide](https://developer.chrome.com/docs/webstore/using-api))            |
+| `CWS_CLIENT_SECRET` | The same OAuth client                                                                                                                           |
+| `CWS_REFRESH_TOKEN` | OAuth Playground with the `https://www.googleapis.com/auth/chromewebstore` scope, signed in as the publisher account                            |
+| `CWS_PUBLISHER_ID`  | Chrome Web Store Developer Dashboard, Publisher > Settings                                                                                      |
+| `CWS_EXTENSION_ID`  | The item's ID in the Developer Dashboard                                                                                                        |
+| `EDGE_CLIENT_ID`    | Partner Center, Microsoft Edge > Publish API ([guide](https://learn.microsoft.com/en-us/microsoft-edge/extensions/update/api/using-addons-api)) |
+| `EDGE_API_KEY`      | The same page. API keys expire, so renew it there when uploads start failing.                                                                   |
+| `EDGE_PRODUCT_ID`   | Partner Center, the extension's overview page                                                                                                   |
+
+Only the secrets for the chosen store are needed. A missing one fails the run before anything is downloaded.
