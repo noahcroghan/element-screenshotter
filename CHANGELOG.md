@@ -8,19 +8,20 @@ Changes since the last release.
 
 ### Added
 
-- An **Arrow keys** setting. Choose **Move the pointer** to make the arrow keys work as in Firefox: they move the pointer by 1 pixel (10 with `Shift`), `Enter` selects the element under it, and `Space` draws a region. The default still moves the highlight through the element tree.
+- An **Arrow keys** setting. Choose **Move the pointer** and the arrow keys move the pointer by 1 pixel (10 with `Shift`), `Enter` selects the element under it, and `Space` draws a region. The default still moves the highlight through the element tree.
 - A **Cursor** setting, off by default, to use the extension's crosshair instead of the system cursor. The cursor then looks the same whether the mouse or the arrow keys move it.
-- Icons on the **Save visible** and **Save full page** buttons, the same ones Firefox uses.
-- Drag the **Save visible** and **Save full page** buttons anywhere by the bar along their top to get them out of the way. They stay where you put them. Double-click the bar to put them back. Turn this off with the new **Save buttons** setting to keep them in the top-right corner, like Firefox.
+- Icons on the **Save visible** and **Save full page** buttons.
+- Drag the **Save visible** and **Save full page** buttons anywhere by the bar along their top to get them out of the way. They stay where you put them. Double-click the bar to put them back. Turn this off with the new **Save buttons** setting to keep them in the top-right corner.
 
 ### Changed
 
-- The label with the highlighted element's tag, id, classes, and size is now off by default, as in Firefox. Turn it on with the new **Element label** setting.
+- The extension's description and settings no longer compare it to Firefox. The README credits Firefox as the original.
+- The label with the highlighted element's tag, id, classes, and size is now off by default. Turn it on with the new **Element label** setting.
 
 ### Fixed
 
 - The highlight and its label no longer draw over the **Save visible** and **Save full page** buttons when the highlighted element runs under them.
-- Opening the overlay with the keyboard shortcut highlights the element under the mouse straight away, without moving the mouse, as in Firefox. The arrow keys then start from the mouse, not the middle of the page.
+- Opening the overlay with the keyboard shortcut highlights the element under the mouse straight away, without moving the mouse. The arrow keys then start from the mouse, not the middle of the page.
 - Scrolling while a long capture is in progress no longer puts pieces of the page in the wrong place. The page can't be scrolled until the capture is done.
 
 ## [1.0.0] - 2026-11-05

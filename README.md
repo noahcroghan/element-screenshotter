@@ -1,6 +1,6 @@
 # Element Screenshotter
 
-A screenshot tool for Chromium browsers that works like the one built into Firefox. Point at part of a page and it highlights the element under your cursor. Click to capture just that element, or drag to capture any region. You can also save the visible part of the page or the whole thing, top to bottom.
+A screenshot tool for Chromium browsers, modelled on the one built into Firefox. Point at part of a page and it highlights the element under your cursor. Click to capture just that element, or drag to capture any region. You can also save the visible part of the page or the whole thing, top to bottom.
 
 It works in Chrome, Edge, Brave, Vivaldi, Helium, and other Chromium-based browsers (version 116 or newer).
 
@@ -33,7 +33,7 @@ The page dims and the overlay waits for you. Press `Esc` or click the toolbar bu
 
 Move the pointer over the page. The element under it is outlined. Click to select it. To also see a label with its tag, id, classes, and size, for example `div#main.card 320 x 200`, turn on **Element label** in the settings.
 
-By default the picker is smart, the way Firefox's is. It skips headings in favour of the section they head, prefers whole articles, and ignores wrappers bigger than the screen. When it doesn't pick what you want, use the arrow keys:
+By default the picker is smart. It skips headings in favour of the section they head, prefers whole articles, and ignores wrappers bigger than the screen. When it doesn't pick what you want, use the arrow keys:
 
 | Key                          | Moves the highlight to            |
 | ---------------------------- | --------------------------------- |
@@ -42,7 +42,7 @@ By default the picker is smart, the way Firefox's is. It skips headings in favou
 | `Left Arrow` / `Right Arrow` | the previous or next sibling      |
 | `Enter`                      | (selects the highlighted element) |
 
-To make the arrow keys work as in Firefox instead, set **Arrow keys** to move the pointer in the settings. Then each arrow key moves the pointer by 1 pixel, or 10 with `Shift`, and the highlight follows it. `Enter` selects the element under the pointer, and `Space` starts drawing a region from it: move the far corner with the arrow keys and press `Enter` or `Space` to finish. Moving the mouse takes over again.
+To move the pointer with the arrow keys instead, set **Arrow keys** to move the pointer in the settings. Then each arrow key moves the pointer by 1 pixel, or 10 with `Shift`, and the highlight follows it. `Enter` selects the element under the pointer, and `Space` starts drawing a region from it: move the far corner with the arrow keys and press `Enter` or `Space` to finish. Moving the mouse takes over again.
 
 This works inside shadow DOM and inside frames from the same site. A frame from another site can only be captured as a whole.
 
@@ -80,16 +80,16 @@ With a selection or preview on screen:
 
 On a Mac, use `Command` instead of `Ctrl`. Whichever you used last is focused next time, so `Enter` repeats it.
 
-Screenshots are saved as PNG files named like Firefox's: `Screenshot 2025-01-31 at 14-05-09 Page title.png`. If your browser is set to ask where to save each file, it will ask for these too.
+Screenshots are saved as PNG files named like `Screenshot 2025-01-31 at 14-05-09 Page title.png`. If your browser is set to ask where to save each file, it will ask for these too.
 
 ## Settings
 
 Right-click the toolbar button and choose **Options**.
 
-- **Element detection.** Smart (the default, like Firefox), or Exact, which always starts from the element directly under the pointer.
-- **Element label.** Shows the highlighted element's tag, id, classes, and size next to it. Off by default, like Firefox. Screen readers announce the element either way.
-- **Arrow keys.** Move the highlight through the element tree (the default), or move the pointer, like Firefox. See [Capture an element](#capture-an-element).
-- **Save buttons.** Drag the Save visible and Save full page buttons anywhere, and keep them there. On by default. Turn it off to keep them in the top-right corner, like Firefox.
+- **Element detection.** Smart (the default), or Exact, which always starts from the element directly under the pointer.
+- **Element label.** Shows the highlighted element's tag, id, classes, and size next to it. Off by default. Screen readers announce the element either way.
+- **Arrow keys.** Move the highlight through the element tree (the default), or move the pointer. See [Capture an element](#capture-an-element).
+- **Save buttons.** Drag the Save visible and Save full page buttons anywhere, and keep them there. On by default. Turn it off to keep them in the top-right corner.
 - **Cursor.** Use the extension's crosshair instead of the system cursor. Off by default. The arrow keys can't move the real cursor, so they move a crosshair the extension draws, which may not look like your system's. Turn this on to use that crosshair for the mouse too.
 - **Keyboard shortcut.** Shows the current shortcut, with a button to open the browser's shortcut page where you can change it.
 
@@ -112,7 +112,7 @@ The extension doesn't connect to the internet, collect data, or keep your screen
 - **Copying needs HTTPS.** Browsers only allow copying images to the clipboard on secure pages. On plain `http://` sites, use Download instead.
 - **Long captures take a moment.** Chromium allows two viewport captures per second, so a page that's ten screens tall takes about five seconds. The toolbar badge shows progress, and the page can't be scrolled until it's done.
 - **Fixed and sticky elements** (headers, cookie banners, chat buttons) appear once, at the top of a full-page capture. In stitched element or region captures they're left out unless they were already on screen where you selected.
-- **Pages that scroll an inner panel** instead of the window (some web apps do this) can only be captured one screen at a time. Firefox has the same limitation.
+- **Pages that scroll an inner panel** instead of the window (some web apps do this) can only be captured one screen at a time.
 - **Very large captures are cropped** to 32,766 pixels per side and about 125 million pixels in total. You'll be told when that happens.
 - Pages that change as you scroll, like infinite feeds or lazy-loaded images, may look slightly different from what you saw.
 

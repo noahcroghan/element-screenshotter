@@ -3,7 +3,7 @@
     "message": "Element Screenshotter"
   },
   "extDescription": {
-    "message": "Screenshot an element, a region, or the whole page. Works like Firefox Screenshots."
+    "message": "Screenshot an element, a region, or the whole page."
   },
   "actionTitle": {
     "message": "Take a screenshot"
@@ -96,7 +96,7 @@
     "message": "Element detection"
   },
   "optSmart": {
-    "message": "Smart: skips headings, prefers articles, and ignores large wrappers (like Firefox)"
+    "message": "Smart: skips headings, prefers articles, and ignores large wrappers"
   },
   "optExact": {
     "message": "Exact: always starts from the element directly under the pointer"
@@ -114,7 +114,7 @@
     "message": "Move the highlight to the parent, child, or sibling element"
   },
   "optArrowPointer": {
-    "message": "Move the pointer (like Firefox)"
+    "message": "Move the pointer"
   },
   "optSaveButtons": {
     "message": "Save buttons"
