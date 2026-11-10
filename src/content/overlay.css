@@ -61,6 +61,11 @@
   pointer-events: none !important;
 }
 
+/* The ownCursor setting: wherever the crosshair would show, we draw it. */
+#root.own-cursor {
+  cursor: none;
+}
+
 #root.dragging {
   cursor: grabbing;
 }
@@ -254,7 +259,7 @@ kbd {
   box-shadow: none;
 }
 
-/* ---- Pointer moved with the arrow keys ---- */
+/* ---- Pointer moved with the arrow keys, or drawn for the ownCursor setting ---- */
 
 /* Firefox moves the real pointer. We hide it and draw our own. */
 #root.keyboard-pointer {

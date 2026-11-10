@@ -51,6 +51,8 @@ export interface Snapshot {
   labelShown: boolean;
   /** Where the pointer is drawn after the arrow keys moved it, if they did. */
   keyboardPointer: { x: number; y: number } | null;
+  /** Where our own crosshair is drawn, for the arrow keys or the ownCursor setting. */
+  drawnCursor: { x: number; y: number } | null;
   /** The Save visible / Save full page panel, while it is shown. */
   panel: Rect | null;
   selection: Rect | null;

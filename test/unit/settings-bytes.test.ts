@@ -19,6 +19,7 @@ describe('normalizeSettings', () => {
         showElementLabel: 'yes',
         arrowKeys: 'mouse',
         movablePanel: 1,
+        ownCursor: 'no',
       }),
     ).toEqual(DEFAULT_SETTINGS);
   });
@@ -30,6 +31,7 @@ describe('normalizeSettings', () => {
         showElementLabel: true,
         arrowKeys: 'pointer',
         movablePanel: false,
+        ownCursor: true,
         format: 'jpeg',
       }),
     ).toEqual({
@@ -37,6 +39,7 @@ describe('normalizeSettings', () => {
       showElementLabel: true,
       arrowKeys: 'pointer',
       movablePanel: false,
+      ownCursor: true,
     });
   });
 });

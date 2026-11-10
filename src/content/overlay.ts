@@ -179,6 +179,8 @@ export class Overlay {
   #pointer: Point | null = null;
   /** The last position the mouse reported. */
   #mousePointer: Point | null = null;
+  /** What the mouse is over, or null once it leaves the page. */
+  #mouseTarget: Element | null = null;
   /** The pointer was last moved with the arrow keys, so we draw it ourselves. */
   #keyboardPointer = false;
   #probeQueued = false;
@@ -235,7 +237,8 @@ export class Overlay {
         ? { label: describeElement(this.#hoverElement), rect: hoverRect }
         : null,
       labelShown: labelBox.width > 1 && labelBox.height > 1,
-      keyboardPointer: this.#ui.cursor.hidden ? null : this.#pointer,
+      keyboardPointer: this.#keyboardPointerShown() ? this.#pointer : null,
+      drawnCursor: this.#ui.cursor.hidden ? null : this.#cursorPoint(),
       panel: this.#ui.panel.hidden ? null : topLevelRect(this.#ui.panel),
       selection: this.#state === 'crosshairs' ? null : this.#selectionRect(),
       selectedElement: this.#selectedElement ? describeElement(this.#selectedElement) : null,
@@ -456,6 +459,9 @@ export class Overlay {
     on('pointerover', (event) => {
       this.#onPointerOver(event);
     });
+    on('pointerout', (event) => {
+      this.#onPointerOut(event);
+    });
     on('pointermove', (event) => {
       this.#onPointerMove(event);
     });
@@ -556,6 +562,7 @@ export class Overlay {
    * a click without moving the mouse acts where the keys put the pointer.
    */
   #trackPointer(event: PointerEvent): Point {
+    this.#mouseTarget = event.target instanceof Element ? event.target : null;
     const mouse = this.#mousePointer;
     if (!this.#pointer || mouse?.x !== event.clientX || mouse.y !== event.clientY) {
       this.#mousePointer = { x: event.clientX, y: event.clientY };
@@ -607,7 +614,20 @@ export class Overlay {
    * it is, so the pointer starts there instead of in the middle.
    */
   #onPointerOver(event: PointerEvent) {
-    if (!this.#pointer) this.#onPointerMove(event);
+    if (!this.#pointer) {
+      this.#onPointerMove(event);
+    } else {
+      // Chrome also fires it when what is under a still mouse changes.
+      this.#mouseTarget = event.target instanceof Element ? event.target : null;
+      this.#drawCursor();
+    }
+  }
+
+  #onPointerOut(event: PointerEvent) {
+    // No related target: the mouse left the page.
+    if (event.relatedTarget) return;
+    this.#mouseTarget = null;
+    this.#drawCursor();
   }
 
   #onPointerMove(event: PointerEvent) {
@@ -820,6 +840,7 @@ export class Overlay {
     this.#state = next;
     const ui = this.#ui;
     ui.root.className = next === 'capturing' ? 'capturing' : next === 'resizing' ? 'dragging' : '';
+    ui.root.classList.toggle('own-cursor', this.#settings.ownCursor);
 
     // The mouse takes over again once the pointer stops mattering.
     if (!POINTER_STATES.has(next) && this.#keyboardPointer) {
@@ -964,12 +985,28 @@ export class Overlay {
     this.#drawCursor();
   }
 
-  /** Draw the pointer when the arrow keys moved it, and hide the real one. */
+  #keyboardPointerShown(): boolean {
+    return this.#keyboardPointer && POINTER_STATES.has(this.#state);
+  }
+
+  /**
+   * Where to draw our crosshair: at the pointer the arrow keys moved, or with
+   * the ownCursor setting, at the mouse wherever the system crosshair would
+   * show. The own-cursor class turns exactly those places' cursor to none.
+   */
+  #cursorPoint(): Point | null {
+    if (this.#keyboardPointerShown()) return this.#pointer;
+    const target = this.#mouseTarget;
+    if (!this.#settings.ownCursor || !target?.isConnected || !this.#mousePointer) return null;
+    return getComputedStyle(target).cursor === 'none' ? this.#mousePointer : null;
+  }
+
+  /** Draw our crosshair where it belongs, and hide the real pointer for the arrow keys. */
   #drawCursor() {
     const { root, cursor } = this.#ui;
-    const point = this.#keyboardPointer && POINTER_STATES.has(this.#state) ? this.#pointer : null;
+    const point = this.#cursorPoint();
     cursor.hidden = !point;
-    root.classList.toggle('keyboard-pointer', !!point);
+    root.classList.toggle('keyboard-pointer', this.#keyboardPointerShown());
     if (point) place(cursor, { left: point.x, top: point.y });
   }
 

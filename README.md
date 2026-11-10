@@ -90,6 +90,7 @@ Right-click the toolbar button and choose **Options**.
 - **Element label.** Shows the highlighted element's tag, id, classes, and size next to it. Off by default, like Firefox. Screen readers announce the element either way.
 - **Arrow keys.** Move the highlight through the element tree (the default), or move the pointer, like Firefox. See [Capture an element](#capture-an-element).
 - **Save buttons.** Drag the Save visible and Save full page buttons anywhere, and keep them there. On by default. Turn it off to keep them in the top-right corner, like Firefox.
+- **Cursor.** Use the extension's crosshair instead of the system cursor. Off by default. The arrow keys can't move the real cursor, so they move a crosshair the extension draws, which may not look like your system's. Turn this on to use that crosshair for the mouse too.
 - **Keyboard shortcut.** Shows the current shortcut, with a button to open the browser's shortcut page where you can change it.
 
 ## Permissions and privacy

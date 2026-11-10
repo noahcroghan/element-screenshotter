@@ -468,6 +468,36 @@ describe('settings', () => {
     expect((await harness.snapshot(page))?.keyboardPointer).toEqual({ x: 151, y: 180 });
   });
 
+  test('the system cursor is used by default', async () => {
+    await open();
+    await harness.start(page);
+    await hover(150, 180);
+    expect((await harness.snapshot(page))?.drawnCursor).toBeNull();
+  });
+
+  test('the own cursor setting draws the crosshair at the mouse, but not over buttons', async () => {
+    await worker.evaluate(() => chrome.storage.sync.set({ ownCursor: true }));
+    await open();
+    await harness.start(page);
+    await hover(150, 180);
+    expect((await harness.snapshot(page))?.drawnCursor).toEqual({ x: 150, y: 180 });
+
+    const panel = (await harness.snapshot(page))?.panel;
+    if (!panel) throw new Error('The save panel is not shown');
+    await hover(panel.left + 50, panel.bottom - 30);
+    expect((await harness.snapshot(page))?.drawnCursor).toBeNull();
+
+    await hover(150, 180);
+    await page.mouse.down();
+    await page.mouse.up();
+    await harness.waitForState(page, 'selected');
+    // Over the selection the move cursor shows; outside it, the crosshair.
+    await hover(150, 180);
+    expect((await harness.snapshot(page))?.drawnCursor).toBeNull();
+    await hover(600, 400);
+    expect((await harness.snapshot(page))?.drawnCursor).toEqual({ x: 600, y: 400 });
+  });
+
   test('pointer mode: Enter selects the element under the pointer', async () => {
     await worker.evaluate(() => chrome.storage.sync.set({ arrowKeys: 'pointer' }));
     await open();

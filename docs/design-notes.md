@@ -158,6 +158,15 @@ On top of that, we add:
   appears under it. We use that, so the highlight and the arrow keys start
   at the mouse. Opened from the toolbar button, the mouse isn't on the page
   and nothing fires, so the arrow keys start in the middle of the viewport.
+- An **own cursor** setting, off by default. The crosshair we draw for the
+  arrow keys can't look like the system cursor (pages can't read the cursor
+  scheme), so switching between mouse and keys changes the cursor. With the
+  setting on, we draw our crosshair for the mouse too. An `own-cursor` class
+  turns the cursor to `none` exactly where it would be `crosshair`, and we
+  draw ours wherever the element under the mouse has a computed cursor of
+  `none`. Buttons and selection handles keep their system cursors. Chrome
+  fires `pointerover` when what is under a still mouse changes, which keeps
+  this right across state changes and scrolling.
 - An **"exact" mode** (setting) that starts at the element under the cursor
   instead of the heuristic's choice.
 - **Shadow DOM piercing**, including closed roots via

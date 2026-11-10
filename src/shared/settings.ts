@@ -23,6 +23,11 @@ export interface Settings {
    * remember where. Off keeps it in the top-right corner, like Firefox.
    */
   movablePanel: boolean;
+  /**
+   * Draw our own crosshair in place of the system cursor, so it looks the same
+   * whether the mouse or the arrow keys move it. Off uses the system cursor.
+   */
+  ownCursor: boolean;
 }
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
@@ -30,6 +35,7 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   showElementLabel: false,
   arrowKeys: 'navigate',
   movablePanel: true,
+  ownCursor: false,
 });
 
 /** Coerce whatever is in storage into a valid Settings object. */
@@ -52,6 +58,8 @@ export function normalizeSettings(raw: unknown): Settings {
       typeof stored.movablePanel === 'boolean'
         ? stored.movablePanel
         : DEFAULT_SETTINGS.movablePanel,
+    ownCursor:
+      typeof stored.ownCursor === 'boolean' ? stored.ownCursor : DEFAULT_SETTINGS.ownCursor,
   };
 }
 

@@ -122,6 +122,12 @@
   "optMovablePanel": {
     "message": "Drag the Save buttons anywhere and keep them there"
   },
+  "optCursor": {
+    "message": "Cursor"
+  },
+  "optOwnCursor": {
+    "message": "Use the extension's crosshair instead of the system cursor"
+  },
   "optShortcut": {
     "message": "Keyboard shortcut"
   },
