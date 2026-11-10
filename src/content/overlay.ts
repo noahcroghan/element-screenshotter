@@ -188,6 +188,8 @@ export class Overlay {
   // Save panel
   #panelAnchor: EdgeAnchor = DEFAULT_PANEL_ANCHOR;
   #panelDrag: PanelDrag | null = null;
+  /** The last press was on the panel's bar, so a double click there resets it. */
+  #pressedPanelBar = false;
 
   // Selection
   #selection: Corners = { x1: 0, y1: 0, x2: 0, y2: 0 };
@@ -474,6 +476,9 @@ export class Overlay {
     on('click', (event) => {
       this.#onClick(event);
     });
+    on('dblclick', () => {
+      if (this.#pressedPanelBar) this.#resetPanel();
+    });
 
     // Keep page handlers from seeing interaction with the overlay.
     const swallowed = [
@@ -579,10 +584,12 @@ export class Overlay {
   #onPointerDown(event: PointerEvent) {
     const point = this.#trackPointer(event);
     if (event.button !== 0) {
+      this.#pressedPanelBar = false;
       this.#cancelPointerGesture();
       return;
     }
-    if (this.#startPanelDrag(event, point)) return;
+    this.#pressedPanelBar = this.#startPanelDrag(event, point);
+    if (this.#pressedPanelBar) return;
     if (this.#isUiControl(event.target)) return;
     const pagePoint = this.#pagePoint(point);
 
@@ -1097,6 +1104,18 @@ export class Overlay {
     if (drag.moved) rememberPanelAnchor(this.#panelAnchor);
   }
 
+  /**
+   * Double-clicking the bar puts the panel back in its default corner. The
+   * click events go to the root, which captured the pointer, so we go by
+   * where the presses began.
+   */
+  #resetPanel() {
+    this.#pressedPanelBar = false;
+    this.#panelAnchor = DEFAULT_PANEL_ANCHOR;
+    this.#placePanel();
+    forgetPanelAnchor();
+  }
+
   #drawEyes(clientX: number, clientY: number) {
     const { clientWidth, clientHeight } = this.#metrics;
     const offsetX = Math.floor((10 * (clientX - clientWidth / 2)) / clientWidth);
@@ -1489,6 +1508,10 @@ function parseAnchor(raw: unknown): EdgeAnchor | null {
 
 function rememberPanelAnchor(anchor: EdgeAnchor) {
   void chrome.storage.local.set({ [PANEL_ANCHOR_KEY]: anchor }).catch(() => undefined);
+}
+
+function forgetPanelAnchor() {
+  void chrome.storage.local.remove(PANEL_ANCHOR_KEY).catch(() => undefined);
 }
 
 function rememberSaveMethod(method: SaveMethod) {

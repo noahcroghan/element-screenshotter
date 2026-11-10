@@ -67,7 +67,7 @@ While the overlay is showing, use the buttons in the top-right corner:
 
 A preview opens with **Copy**, **Download**, **Retry**, and **Cancel**.
 
-If the buttons are in the way, drag them anywhere by the bar along their top. They stay where you put them next time.
+If the buttons are in the way, drag them anywhere by the bar along their top. They stay where you put them next time. Double-click the bar to put them back in the top-right corner.
 
 ### Copy or download
 

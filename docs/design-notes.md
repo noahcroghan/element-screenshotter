@@ -184,8 +184,9 @@ On top of that, we add:
   the bar drags it, so the buttons stay plain buttons. Its position is kept in
   `chrome.storage.local` as the distance from the nearest side and the
   nearest top or bottom edge, so it stays near the same corner when the
-  window is resized, and is kept inside the viewport. With the setting off it
-  stays in the top-right corner, like Firefox.
+  window is resized, and is kept inside the viewport. Double-clicking the bar
+  puts it back in the top-right corner and forgets the stored position. With
+  the setting off it stays in the top-right corner, like Firefox.
 
 ## Decisions and open questions
 

@@ -27,7 +27,7 @@
     "message": "Cancel (Esc)"
   },
   "movePanelTitle": {
-    "message": "Drag to move"
+    "message": "Drag to move, double-click to reset"
   },
   "copy": {
     "message": "Copy"

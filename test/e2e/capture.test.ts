@@ -339,6 +339,24 @@ describe('save panel', () => {
     expect(reopened.top).toBeCloseTo(moved.top, 0);
   });
 
+  test('goes back to the top-right corner when the bar is double-clicked', async () => {
+    await open();
+    await harness.start(page);
+    const start = await panel();
+    await drag(start.left + 30, start.top + 6, start.left - 270, start.top + 306);
+    const moved = await panel();
+    expect(moved.left).toBeCloseTo(start.left - 300, 0);
+
+    await page.mouse.click(moved.left + 30, moved.top + 6, { count: 2 });
+    expectSameRect(await panel(), start);
+    expect((await harness.snapshot(page))?.state).toBe('crosshairs');
+
+    await page.keyboard.press('Escape');
+    await harness.waitForState(page, null);
+    await harness.start(page);
+    expectSameRect(await panel(), start);
+  });
+
   test('only the bar moves it, so a drag from a button does nothing', async () => {
     await open();
     await harness.start(page);
