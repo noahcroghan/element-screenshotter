@@ -43,7 +43,7 @@ pnpm test:e2e     # builds, then runs the browser tests
 | `pnpm build`                   | Bundle `src/` with esbuild and copy `static/` into `dist/`                 |
 | `pnpm watch`                   | Same, rebuilding on change                                                 |
 | `pnpm package`                 | Build and zip `dist/` into `artifacts/element-screenshotter-<version>.zip` |
-| `pnpm icons`                   | Re-render `static/icons/*.png` from `icon.svg` using the test browser      |
+| `pnpm icons`                   | Re-render `static/icons/*.png` from the SVGs using the test browser        |
 | `pnpm typecheck`               | `tsc --noEmit` (TypeScript 7)                                              |
 | `pnpm lint`                    | ESLint with type-aware typescript-eslint rules                             |
 | `pnpm lint:md`                 | markdownlint on every Markdown file                                        |
@@ -189,3 +189,11 @@ gh attestation verify element-screenshotter-x.y.z.zip --repo noahcroghan/element
 ```
 
 For a local build to share without releasing, run `pnpm package` and use `artifacts/element-screenshotter-<version>.zip`.
+
+## Web stores
+
+The Chrome Web Store and Edge Add-ons listings are prepared in the repository, but the owner creates the accounts, uploads, and submits.
+
+### Icons
+
+There are two sources in `static/icons/`. `icon-toolbar.svg` is drawn on a 16 px grid and fills its square, for the 16 and 32 px toolbar icons. `icon.svg` follows the Chrome Web Store guideline of 96x96 artwork inside 16 px of transparent padding, for the 48 and 128 px icons. Run `pnpm icons` after editing either one.
