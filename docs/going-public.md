@@ -82,7 +82,7 @@ The commands use the [GitHub CLI](https://cli.github.com/) from a clone of the r
   gh pr checks <number>
   ```
 
-- [ ] The next release has a provenance attestation. v1.0.0 has none, because it was released while private. After the next tag is published:
+- [ ] The next release has a provenance attestation. Releases made while the repository was private have none. After the next tag is published:
 
   ```sh
   gh release download vx.y.z --pattern '*.zip'
