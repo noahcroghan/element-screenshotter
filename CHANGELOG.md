@@ -6,6 +6,10 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 Changes since the last release.
 
+## [1.1.0] - 2026-11-11
+
+New settings for the arrow keys, cursor, element label, and save buttons, and fixes for the overlay.
+
 ### Added
 
 - An **Arrow keys** setting. Choose **Move the pointer** and the arrow keys move the pointer by 1 pixel (10 with `Shift`), `Enter` selects the element under it, and `Space` draws a region. The default still moves the highlight through the element tree.
@@ -15,6 +19,7 @@ Changes since the last release.
 
 ### Changed
 
+- A redrawn icon that stays legible at 16 px in the toolbar.
 - The extension's description and settings no longer compare it to Firefox. The README credits Firefox as the original.
 - The label with the highlighted element's tag, id, classes, and size is now off by default. Turn it on with the new **Element label** setting.
 
@@ -23,6 +28,10 @@ Changes since the last release.
 - The highlight and its label no longer draw over the **Save visible** and **Save full page** buttons when the highlighted element runs under them.
 - Opening the overlay with the keyboard shortcut highlights the element under the mouse straight away, without moving the mouse. The arrow keys then start from the mouse instead of the middle of the page.
 - Scrolling while a long capture is in progress no longer puts pieces of the page in the wrong place. The page can't be scrolled until the capture is done.
+
+### Install
+
+Download `element-screenshotter-1.1.0.zip` below, unzip it, and load the folder from `chrome://extensions` with **Developer mode** on (**Load unpacked**). The README's Install section has details. `SHA256SUMS.txt` lets you check the download.
 
 ## [1.0.0] - 2026-11-05
 
