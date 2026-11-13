@@ -15,7 +15,7 @@
 }
 
 #root {
-  --dim: rgba(0, 0, 0, 0.55);
+  --dim: rgba(0, 0, 0, 0.5);
   --accent: #0061e0;
   --accent-hover: #0250bb;
   --accent-active: #053e94;

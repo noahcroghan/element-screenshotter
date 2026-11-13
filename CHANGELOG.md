@@ -6,6 +6,10 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 Changes since the last release.
 
+### Changed
+
+- The page is dimmed slightly less while taking a screenshot, to match Firefox.
+
 ## [1.1.0] - 2026-11-11
 
 New settings for the arrow keys, cursor, element label, and save buttons, and fixes for the overlay.
