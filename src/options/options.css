@@ -55,8 +55,17 @@ kbd {
     monospace;
 }
 
+/* Wraps the button onto its own line only when the text is too long. */
+.shortcut-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+  margin: 4px 0 0;
+}
+
 #shortcut {
-  margin: 4px 0 8px;
+  margin: 0;
 }
 
 .footer {
