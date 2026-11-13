@@ -26,6 +26,7 @@ Human-facing docs come first: [the README](README.md) for users, [the developmen
 - **Data URLs over about 2 MB fail in `chrome.downloads`,** and messages are JSON-only and capped at 64 MiB. That's why downloads go through the offscreen document in base64 chunks.
 - **Downloads in progress have different names per OS:** `*.crdownload` on Windows and macOS, hidden `.org.chromium.Chromium.*` files on Linux. The harness skips both.
 - **Case-only renames are invisible on Windows and macOS.** With `core.ignorecase`, `git mv README.md readme.md` changes nothing in the index, and Linux checkouts break. Use `git rm --cached <old>` then `git add <new>`, and check `git ls-files`.
+- **The Windows and macOS CI runners ask for reduced motion,** which turns off the overlay's transitions. Tests of animations must emulate `prefers-reduced-motion: no-preference` after opening the page.
 - **Helium bundles uBlock Origin,** which reloads open tabs once at startup. When `BROWSER_PATH` points at Helium, `Harness.launch()` waits for that reload on a warm-up tab.
 
 ## Looking at the UI

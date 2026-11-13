@@ -486,6 +486,8 @@ describe('settings', () => {
 
   test('the Zen style highlight keeps sliding while the mouse moves within the new element', async () => {
     await open();
+    // The Windows and macOS CI runners ask for reduced motion, which turns the slide off.
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
     await harness.start(page);
     await hover(150, 180); // div#inner
     await sleep(300);
