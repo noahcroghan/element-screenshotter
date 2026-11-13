@@ -101,8 +101,11 @@
   "optExact": {
     "message": "Exact: always starts from the element directly under the pointer"
   },
-  "optElementLabel": {
-    "message": "Element label"
+  "optHighlight": {
+    "message": "Highlight"
+  },
+  "optZenBrowserStyle": {
+    "message": "Use a rounded outline that slides between elements (like Zen)"
   },
   "optShowElementLabel": {
     "message": "Display a tooltip showing the highlighted element's tag, id, classes, and size"

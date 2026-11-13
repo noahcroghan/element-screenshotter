@@ -28,6 +28,11 @@ export interface Settings {
    * whether the mouse or the arrow keys move it. Off uses the system cursor.
    */
   ownCursor: boolean;
+  /**
+   * Style the hover highlight like the Zen browser: a solid, rounded outline
+   * that slides from one element to the next. Off uses Firefox's dashed one.
+   */
+  zenBrowserStyle: boolean;
 }
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
@@ -36,6 +41,7 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   arrowKeys: 'navigate',
   movablePanel: true,
   ownCursor: false,
+  zenBrowserStyle: true,
 });
 
 /** Coerce whatever is in storage into a valid Settings object. */
@@ -60,6 +66,10 @@ export function normalizeSettings(raw: unknown): Settings {
         : DEFAULT_SETTINGS.movablePanel,
     ownCursor:
       typeof stored.ownCursor === 'boolean' ? stored.ownCursor : DEFAULT_SETTINGS.ownCursor,
+    zenBrowserStyle:
+      typeof stored.zenBrowserStyle === 'boolean'
+        ? stored.zenBrowserStyle
+        : DEFAULT_SETTINGS.zenBrowserStyle,
   };
 }
 

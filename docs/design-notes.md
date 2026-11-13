@@ -187,22 +187,37 @@ On top of that, we add:
   window is resized, and is kept inside the viewport. Double-clicking the bar
   puts it back in the top-right corner and forgets the stored position. With
   the setting off it stays in the top-right corner, like Firefox.
+- A **Zen browser highlight style** (setting, on by default). Zen, a
+  Firefox-based browser, patches Firefox's hover highlight
+  (`src/browser/components/screenshots/overlay/overlay-css.patch` in
+  `zen-browser/desktop`): a solid, translucent, rounded outline with
+  `transition: all 0.1s`, so it slides from one element to the next. We copy
+  those three rules behind a `zen-browser-style` class, and the element label
+  slides with the outline. Firefox's highlight is attached to the page, so it
+  scrolls with it, but ours is redrawn after each scroll. When the same
+  element has moved, the transition is turned off (a `still` class), or the
+  outline would trail the page. Every mouse move redraws the highlight too, so
+  a redraw that changes nothing is skipped, or it would cut the slide short.
+  Zen's patch also changes the dimming colour, to the value Firefox already
+  uses, and positions a panel id that Firefox has since renamed, so neither
+  changes anything. Code and settings that copy Zen say
+  "Zen browser" (`zenBrowserStyle`), so they are easy to find and rename.
 
 ## Decisions and open questions
 
 Most of these were decided up front, and each one can be changed.
 
-| Topic            | Decision                                                                      | Why / risk                                                                                                                                                                               |
-| ---------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| License          | MPL-2.0                                                                       | The element heuristic, region math, face SVG, and save icons are ported from Firefox (MPL-2.0). MPL is file-level copyleft, so the rest could be relicensed, but one license is simpler. |
-| Capture backend  | `captureVisibleTab` + stitching                                               | No infobar or scary permission. Costs: about 0.5 s per tile, and `fixed`/`sticky` handling is heuristic.                                                                                 |
-| Permissions      | `activeTab`, `scripting`, `downloads`, `offscreen`, `storage`, `contextMenus` | Only `downloads` shows an install warning ("Manage your downloads"). No host permissions.                                                                                                |
-| Default shortcut | `Ctrl+Shift+S` (`Cmd+Shift+S` on macOS)                                       | Same as Firefox. Chrome silently skips it if another extension already uses it.                                                                                                          |
-| Clipboard        | `navigator.clipboard.write` in the content script                             | Fails on plain `http://` pages (not a secure context). Download still works there, and the user gets a clear message.                                                                    |
-| Scope            | Top frame only                                                                | Same-origin iframes are pierced. Cross-origin iframes can only be captured as a whole rectangle.                                                                                         |
-| Inner scrollers  | Not stitched                                                                  | "Full page" scrolls the window only. Apps that scroll an inner `<div>` capture just the viewport, as in Firefox.                                                                         |
-| Restricted pages | Not supported                                                                 | `chrome://`, the Web Store, other extensions' pages and the PDF viewer can't be scripted. The toolbar badge shows an error.                                                              |
-| Browser support  | Chromium 116+                                                                 | Needs `runtime.getContexts`, popover, and `offscreen`. Tested on Helium (Chromium 156).                                                                                                  |
-| Distribution     | GitHub releases (zip), loaded unpacked                                        | Chrome Web Store and Edge Add-ons listings are prepared (docs/web-store-listing.md) but not submitted. The repository is private for now.                                                |
-| TypeScript       | `tsc` is TS 7; the `typescript` package is the TS 6 API                       | typescript-eslint can't load TS 7.0, which has no JS API. Remove the alias once typescript-eslint supports TS 7.1. See development.md.                                                   |
-| CI/CD            | GitHub Actions + Dependabot; tag-triggered releases                           | Checks and e2e run on Linux, Windows, and macOS (private pull requests: Linux only). CodeQL and release provenance switch on when public. Tests download Chrome for Testing.             |
+| Topic            | Decision                                                                      | Why / risk                                                                                                                                                                                                                               |
+| ---------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| License          | MPL-2.0                                                                       | The element heuristic, region math, face SVG, and save icons are ported from Firefox (MPL-2.0), and the Zen highlight style from Zen (MPL-2.0). MPL is file-level copyleft, so the rest could be relicensed, but one license is simpler. |
+| Capture backend  | `captureVisibleTab` + stitching                                               | No infobar or scary permission. Costs: about 0.5 s per tile, and `fixed`/`sticky` handling is heuristic.                                                                                                                                 |
+| Permissions      | `activeTab`, `scripting`, `downloads`, `offscreen`, `storage`, `contextMenus` | Only `downloads` shows an install warning ("Manage your downloads"). No host permissions.                                                                                                                                                |
+| Default shortcut | `Ctrl+Shift+S` (`Cmd+Shift+S` on macOS)                                       | Same as Firefox. Chrome silently skips it if another extension already uses it.                                                                                                                                                          |
+| Clipboard        | `navigator.clipboard.write` in the content script                             | Fails on plain `http://` pages (not a secure context). Download still works there, and the user gets a clear message.                                                                                                                    |
+| Scope            | Top frame only                                                                | Same-origin iframes are pierced. Cross-origin iframes can only be captured as a whole rectangle.                                                                                                                                         |
+| Inner scrollers  | Not stitched                                                                  | "Full page" scrolls the window only. Apps that scroll an inner `<div>` capture just the viewport, as in Firefox.                                                                                                                         |
+| Restricted pages | Not supported                                                                 | `chrome://`, the Web Store, other extensions' pages and the PDF viewer can't be scripted. The toolbar badge shows an error.                                                                                                              |
+| Browser support  | Chromium 116+                                                                 | Needs `runtime.getContexts`, popover, and `offscreen`. Tested on Helium (Chromium 156).                                                                                                                                                  |
+| Distribution     | GitHub releases (zip), loaded unpacked                                        | Chrome Web Store and Edge Add-ons listings are prepared (docs/web-store-listing.md) but not submitted. The repository is private for now.                                                                                                |
+| TypeScript       | `tsc` is TS 7; the `typescript` package is the TS 6 API                       | typescript-eslint can't load TS 7.0, which has no JS API. Remove the alias once typescript-eslint supports TS 7.1. See development.md.                                                                                                   |
+| CI/CD            | GitHub Actions + Dependabot; tag-triggered releases                           | Checks and e2e run on Linux, Windows, and macOS (private pull requests: Linux only). CodeQL and release provenance switch on when public. Tests download Chrome for Testing.                                                             |

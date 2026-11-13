@@ -6,10 +6,15 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 Changes since the last release.
 
+### Added
+
+- A **Highlight** setting, on by default, that draws the outline around the hovered element like the Zen browser does: a rounded line that slides from one element to the next. Turn it off for Firefox's dashed outline.
+
 ### Changed
 
 - The page is dimmed slightly less while taking a screenshot, to match Firefox.
 - The settings say again which options work like Firefox.
+- The **Element label** setting moved under **Highlight**.
 
 ## [1.1.0] - 2026-11-11
 

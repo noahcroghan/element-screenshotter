@@ -20,6 +20,7 @@ describe('normalizeSettings', () => {
         arrowKeys: 'mouse',
         movablePanel: 1,
         ownCursor: 'no',
+        zenBrowserStyle: 0,
       }),
     ).toEqual(DEFAULT_SETTINGS);
   });
@@ -32,6 +33,7 @@ describe('normalizeSettings', () => {
         arrowKeys: 'pointer',
         movablePanel: false,
         ownCursor: true,
+        zenBrowserStyle: false,
         format: 'jpeg',
       }),
     ).toEqual({
@@ -40,6 +42,7 @@ describe('normalizeSettings', () => {
       arrowKeys: 'pointer',
       movablePanel: false,
       ownCursor: true,
+      zenBrowserStyle: false,
     });
   });
 });

@@ -8,6 +8,7 @@ const showLabel = form.elements.namedItem('showElementLabel') as HTMLInputElemen
 const arrowKeys = form.elements.namedItem('arrowKeys') as RadioNodeList;
 const movablePanel = form.elements.namedItem('movablePanel') as HTMLInputElement;
 const ownCursor = form.elements.namedItem('ownCursor') as HTMLInputElement;
+const zenBrowserStyle = form.elements.namedItem('zenBrowserStyle') as HTMLInputElement;
 
 function showSettings(settings: Settings) {
   detection.value = settings.elementDetection;
@@ -15,6 +16,7 @@ function showSettings(settings: Settings) {
   arrowKeys.value = settings.arrowKeys;
   movablePanel.checked = settings.movablePanel;
   ownCursor.checked = settings.ownCursor;
+  zenBrowserStyle.checked = settings.zenBrowserStyle;
 }
 
 /** Fill an element with a message, turning `<kbd>Key</kbd>` into real kbd elements. */
@@ -43,6 +45,7 @@ async function persist() {
     arrowKeys: arrowKeys.value as Settings['arrowKeys'],
     movablePanel: movablePanel.checked,
     ownCursor: ownCursor.checked,
+    zenBrowserStyle: zenBrowserStyle.checked,
   });
   showSettings(saved);
   status.textContent = localize('optSaved');

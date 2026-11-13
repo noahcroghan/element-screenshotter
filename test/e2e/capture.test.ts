@@ -470,6 +470,66 @@ describe('settings', () => {
     expect((await harness.snapshot(page))?.labelShown).toBe(true);
   });
 
+  test('the highlight is styled like Zen by default, and like Firefox with the setting off', async () => {
+    await open();
+    await harness.start(page);
+    await hover(150, 180);
+    expect((await harness.snapshot(page))?.zenBrowserStyle).toBe(true);
+    await page.keyboard.press('Escape');
+    await harness.waitForState(page, null);
+
+    await worker.evaluate(() => chrome.storage.sync.set({ zenBrowserStyle: false }));
+    await harness.start(page);
+    await hover(150, 180);
+    expect((await harness.snapshot(page))?.zenBrowserStyle).toBe(false);
+  });
+
+  test('the Zen style highlight keeps sliding while the mouse moves within the new element', async () => {
+    await open();
+    await harness.start(page);
+    await hover(150, 180); // div#inner
+    await sleep(300);
+    // Slow animations down tenfold, so the 0.1s slide can't finish under the test.
+    const cdp = await page.createCDPSession();
+    await cdp.send('Animation.enable');
+    await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.1 });
+    try {
+      await hover(400, 300); // div#card: the slide starts
+      await hover(405, 305); // still div#card
+      const snap = await harness.snapshot(page);
+      expect(snap?.hover?.label).toBe('div#card');
+      // Still on its way from div#inner, not cut short.
+      expect(snap?.hoverBox?.left).toBeGreaterThan((snap?.hover?.rect?.left ?? NaN) + 1);
+    } finally {
+      await cdp.send('Animation.setPlaybackRate', { playbackRate: 1 });
+      await cdp.detach();
+    }
+  });
+
+  test('the Zen style highlight follows a scroll at once instead of sliding', async () => {
+    await open();
+    await harness.start(page);
+    await hover(150, 180);
+    await page.keyboard.press('ArrowUp'); // div#card; the keyboard keeps it highlighted
+    await sleep(300); // let the slide to it finish
+    const before = (await harness.snapshot(page))?.hover?.rect?.top ?? NaN;
+    await page.evaluate(() => {
+      window.scrollBy(0, 50);
+    });
+    await page.evaluate(
+      () =>
+        new Promise((resolveFrame) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolveFrame)),
+        ),
+    );
+    const snap = await harness.snapshot(page);
+    expect(snap?.hover?.label).toBe('div#card');
+    expect(snap?.hover?.rect?.top).toBeCloseTo(before - 50, 0);
+    for (const edge of ['left', 'top', 'right', 'bottom'] as const) {
+      expect(snap?.hoverBox?.[edge], edge).toBeCloseTo(snap?.hover?.rect?.[edge] ?? NaN, 0);
+    }
+  });
+
   test('pointer mode: arrow keys move the pointer, a mouse move takes over again', async () => {
     await worker.evaluate(() => chrome.storage.sync.set({ arrowKeys: 'pointer' }));
     await open();

@@ -1,6 +1,9 @@
 /* Styles for the screenshot overlay. Loaded into a closed shadow root as a
  * constructable stylesheet, so page CSS and CSP cannot affect it. Layout
- * follows Firefox's overlay/overlay.css (MPL-2.0). */
+ * follows Firefox's overlay/overlay.css (MPL-2.0). The zenBrowserStyle rules
+ * follow the Zen browser's patch to that file,
+ * src/browser/components/screenshots/overlay/overlay-css.patch in
+ * https://github.com/zen-browser/desktop (MPL-2.0). */
 
 :host {
   all: initial;
@@ -224,6 +227,30 @@ kbd {
 #hover.keyboard {
   border-style: solid;
   border-color: #fff;
+}
+
+/* The zenBrowserStyle setting: a solid, rounded outline that slides from one
+   element to the next, as in the Zen browser. The label slides with it. */
+#root.zen-browser-style #hover {
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  transition: all 0.1s;
+}
+
+#root.zen-browser-style #hover.keyboard {
+  border-color: #fff;
+}
+
+#root.zen-browser-style #hover-label {
+  transition:
+    left 0.1s,
+    top 0.1s;
+}
+
+/* Redrawn around the same element, after a scroll: follow the page at once. */
+#root.zen-browser-style #hover.still,
+#root.zen-browser-style #hover-label.still {
+  transition: none;
 }
 
 #hover-label {
@@ -597,7 +624,8 @@ button svg {
     background: transparent;
   }
   #highlight,
-  #hover {
+  #hover,
+  #root.zen-browser-style #hover {
     border-color: Highlight;
   }
   .mover {

@@ -26,6 +26,7 @@ import {
   height,
   intersect,
   isEmpty,
+  sameRect,
   shiftInto,
   translate,
   width,
@@ -174,6 +175,8 @@ export class Overlay {
   // Hover and element navigation
   #hoverElement: Element | null = null;
   #hoverByKeyboard = false;
+  /** The element the highlight was last drawn around, and where, while it is shown. */
+  #drawnHover: { target: Element; rect: Rect } | null = null;
   #navigationStack: Element[] = [];
   /** Where the pointer is, in client coordinates. Moved by the mouse or the arrow keys. */
   #pointer: Point | null = null;
@@ -239,6 +242,8 @@ export class Overlay {
         ? { label: describeElement(this.#hoverElement), rect: hoverRect }
         : null,
       labelShown: labelBox.width > 1 && labelBox.height > 1,
+      zenBrowserStyle: this.#ui.root.classList.contains('zen-browser-style'),
+      hoverBox: this.#ui.hover.hidden ? null : topLevelRect(this.#ui.hover),
       keyboardPointer: this.#keyboardPointerShown() ? this.#pointer : null,
       drawnCursor: this.#ui.cursor.hidden ? null : this.#cursorPoint(),
       panel: this.#ui.panel.hidden ? null : topLevelRect(this.#ui.panel),
@@ -849,6 +854,7 @@ export class Overlay {
     const ui = this.#ui;
     ui.root.className = next === 'capturing' ? 'capturing' : next === 'resizing' ? 'dragging' : '';
     ui.root.classList.toggle('own-cursor', this.#settings.ownCursor);
+    ui.root.classList.toggle('zen-browser-style', this.#settings.zenBrowserStyle);
 
     // The mouse takes over again once the pointer stops mattering.
     if (!POINTER_STATES.has(next) && this.#keyboardPointer) {
@@ -1036,10 +1042,21 @@ export class Overlay {
     if (!target || !rect || this.#state !== 'crosshairs') {
       hover.hidden = true;
       hoverLabel.hidden = true;
+      this.#drawnHover = null;
       return;
     }
-    hover.hidden = false;
     hover.classList.toggle('keyboard', this.#hoverByKeyboard);
+    // The Zen browser style slides the highlight to a new element. Every mouse
+    // move redraws it, so leave it alone while nothing changed, or the slide
+    // is cut short. When the same element moved (a scroll), jump with it, or
+    // the highlight trails the page.
+    const drawn = !hover.hidden ? this.#drawnHover : null;
+    if (drawn?.target === target && sameRect(drawn.rect, rect)) return;
+    const still = drawn?.target === target;
+    hover.classList.toggle('still', still);
+    hoverLabel.classList.toggle('still', still);
+    this.#drawnHover = { target, rect };
+    hover.hidden = false;
     place(hover, { left: rect.left, top: rect.top, width: width(rect), height: height(rect) });
 
     hoverLabel.hidden = false;

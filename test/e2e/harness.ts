@@ -49,6 +49,10 @@ export interface Snapshot {
   hover: { label: string; rect: Rect | null } | null;
   /** Whether the element label is visible on screen. */
   labelShown: boolean;
+  /** Whether the highlight is styled like the Zen browser (the zenBrowserStyle setting). */
+  zenBrowserStyle: boolean;
+  /** Where the highlight is drawn, while it is shown. Lags `hover.rect` while it slides. */
+  hoverBox: Rect | null;
   /** Where the pointer is drawn after the arrow keys moved it, if they did. */
   keyboardPointer: { x: number; y: number } | null;
   /** Where our own crosshair is drawn, for the arrow keys or the ownCursor setting. */
