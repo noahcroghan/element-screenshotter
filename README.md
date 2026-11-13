@@ -95,6 +95,8 @@ Right-click the toolbar button and choose **Options**.
 - **Cursor** uses the extension's crosshair instead of the system cursor. It's off by default. The arrow keys can't move the real cursor, so they move a crosshair the extension draws, which may not look like your system's. Turn this on to use that crosshair for the mouse too.
 - **Keyboard shortcut** shows the current shortcut, with a button to open the browser's shortcut page where you can change it.
 
+**Reset defaults** puts every setting back to its default after asking you to confirm. It doesn't change the keyboard shortcut.
+
 ## Permissions and privacy
 
 The extension doesn't connect to the internet, collect data, or keep your screenshots anywhere except where you save or copy them. It only touches a page after you start a screenshot on it.

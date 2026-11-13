@@ -145,5 +145,20 @@
   },
   "optSaved": {
     "message": "Saved"
+  },
+  "optReset": {
+    "message": "Reset defaults"
+  },
+  "optResetQuestion": {
+    "message": "Reset all settings to their defaults? The keyboard shortcut stays as it is."
+  },
+  "optResetCancel": {
+    "message": "Cancel"
+  },
+  "optResetConfirm": {
+    "message": "Reset"
+  },
+  "optResetDone": {
+    "message": "Settings reset"
   }
 }

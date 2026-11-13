@@ -68,7 +68,20 @@
         </fieldset>
       </form>
 
-      <p id="status" role="status" aria-live="polite"></p>
+      <div class="footer">
+        <button type="button" id="reset" data-i18n="optReset"></button>
+        <p id="status" role="status" aria-live="polite"></p>
+      </div>
+
+      <dialog id="reset-dialog" aria-labelledby="reset-question">
+        <form method="dialog">
+          <p id="reset-question" data-i18n="optResetQuestion"></p>
+          <div class="buttons">
+            <button value="cancel" autofocus data-i18n="optResetCancel"></button>
+            <button value="reset" data-i18n="optResetConfirm"></button>
+          </div>
+        </form>
+      </dialog>
     </main>
     <script type="module" src="options.js"></script>
   </body>

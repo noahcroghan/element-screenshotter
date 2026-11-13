@@ -77,6 +77,12 @@ export async function loadSettings(): Promise<Settings> {
   return normalizeSettings(await chrome.storage.sync.get(Object.keys(DEFAULT_SETTINGS)));
 }
 
+/** Forget the stored settings, so the defaults apply. */
+export async function resetSettings(): Promise<Settings> {
+  await chrome.storage.sync.remove(Object.keys(DEFAULT_SETTINGS));
+  return normalizeSettings({});
+}
+
 export async function saveSettings(patch: Partial<Settings>): Promise<Settings> {
   const next = normalizeSettings({ ...(await loadSettings()), ...patch });
   await chrome.storage.sync.set(next);

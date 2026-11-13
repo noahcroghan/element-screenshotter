@@ -9,6 +9,7 @@ Changes since the last release.
 ### Added
 
 - A **Highlight** setting, on by default, that draws the outline around the hovered element like the Zen browser does: a rounded line that slides from one element to the next. Turn it off for Firefox's dashed outline.
+- A **Reset defaults** button in the settings. It asks before resetting.
 
 ### Changed
 

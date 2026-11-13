@@ -69,6 +69,45 @@ test('the options page is localised and saves changes', async () => {
   await page.close();
 });
 
+test('Reset defaults asks first, then clears the settings', async () => {
+  await worker.evaluate(async () => {
+    await chrome.storage.sync.clear();
+    await chrome.storage.sync.set({ elementDetection: 'exact', showElementLabel: true });
+  });
+  const page = await harness.browser.newPage();
+  await page.goto(`chrome-extension://${harness.extension.id}/options.html`);
+  expect(await page.$eval('#reset', (button) => button.textContent)).toBe('Reset defaults');
+  const dialogOpen = () => page.$eval('dialog', (dialog) => dialog.open);
+
+  // Cancel keeps everything.
+  await page.click('#reset');
+  expect(await dialogOpen()).toBe(true);
+  expect(await page.evaluate(() => document.activeElement?.textContent)).toBe('Cancel');
+  await page.click('#reset-dialog button[value="cancel"]');
+  expect(await dialogOpen()).toBe(false);
+  // So does Escape, even after the dialog was last closed another way.
+  await page.click('#reset');
+  await page.keyboard.press('Escape');
+  expect(await dialogOpen()).toBe(false);
+  await sleep(200);
+  expect(await worker.evaluate(() => chrome.storage.sync.get(null))).toEqual({
+    elementDetection: 'exact',
+    showElementLabel: true,
+  });
+  expect(await page.$eval('input[value="exact"]', (radio) => radio.checked)).toBe(true);
+
+  // Reset clears storage and shows the defaults.
+  await page.click('#reset');
+  await page.click('#reset-dialog button[value="reset"]');
+  await page.waitForFunction(() => document.querySelector('#status')?.textContent);
+  expect(await page.$eval('#status', (status) => status.textContent)).toBe('Settings reset');
+  expect(await worker.evaluate(() => chrome.storage.sync.get(null))).toEqual({});
+  expect(await page.$eval('input[value="smart"]', (radio) => radio.checked)).toBe(true);
+  expect(await page.$eval('input[name="showElementLabel"]', (box) => box.checked)).toBe(false);
+  expect(await page.$eval('input[name="zenBrowserStyle"]', (box) => box.checked)).toBe(true);
+  await page.close();
+});
+
 test('the options page fits the chrome://extensions dialog without scrolling', async () => {
   // Chrome caps the dialog at 640px, and its title bar takes about 70px of that.
   const page = await harness.browser.newPage();

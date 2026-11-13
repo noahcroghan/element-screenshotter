@@ -1,5 +1,5 @@
 import { localize, type MessageKey } from '../shared/i18n';
-import { loadSettings, saveSettings, type Settings } from '../shared/settings';
+import { loadSettings, resetSettings, saveSettings, type Settings } from '../shared/settings';
 
 const form = document.getElementById('form') as HTMLFormElement;
 const status = document.getElementById('status') as HTMLParagraphElement;
@@ -9,6 +9,7 @@ const arrowKeys = form.elements.namedItem('arrowKeys') as RadioNodeList;
 const movablePanel = form.elements.namedItem('movablePanel') as HTMLInputElement;
 const ownCursor = form.elements.namedItem('ownCursor') as HTMLInputElement;
 const zenBrowserStyle = form.elements.namedItem('zenBrowserStyle') as HTMLInputElement;
+const resetDialog = document.getElementById('reset-dialog') as HTMLDialogElement;
 
 function showSettings(settings: Settings) {
   detection.value = settings.elementDetection;
@@ -38,6 +39,12 @@ function localizePage() {
 }
 
 let statusTimer = 0;
+function showStatus(message: string) {
+  status.textContent = message;
+  clearTimeout(statusTimer);
+  statusTimer = window.setTimeout(() => (status.textContent = ''), 1500);
+}
+
 async function persist() {
   const saved = await saveSettings({
     elementDetection: detection.value as Settings['elementDetection'],
@@ -48,9 +55,12 @@ async function persist() {
     zenBrowserStyle: zenBrowserStyle.checked,
   });
   showSettings(saved);
-  status.textContent = localize('optSaved');
-  clearTimeout(statusTimer);
-  statusTimer = window.setTimeout(() => (status.textContent = ''), 1500);
+  showStatus(localize('optSaved'));
+}
+
+async function reset() {
+  showSettings(await resetSettings());
+  showStatus(localize('optResetDone'));
 }
 
 async function showShortcut() {
@@ -71,6 +81,14 @@ showSettings(await loadSettings());
 void showShortcut();
 
 form.addEventListener('change', () => void persist());
+document.getElementById('reset')?.addEventListener('click', () => {
+  // Escape closes the dialog without touching returnValue, so clear it first.
+  resetDialog.returnValue = '';
+  resetDialog.showModal();
+});
+resetDialog.addEventListener('close', () => {
+  if (resetDialog.returnValue === 'reset') void reset();
+});
 document.getElementById('shortcuts')?.addEventListener('click', () => {
   void chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
 });
