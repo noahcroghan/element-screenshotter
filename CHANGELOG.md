@@ -9,6 +9,7 @@ Changes since the last release.
 ### Changed
 
 - The page is dimmed slightly less while taking a screenshot, to match Firefox.
+- The settings say again which options work like Firefox.
 
 ## [1.1.0] - 2026-11-11
 

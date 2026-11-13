@@ -96,7 +96,7 @@
     "message": "Element detection"
   },
   "optSmart": {
-    "message": "Smart: skips headings, prefers articles, and ignores large wrappers"
+    "message": "Smart: skips headings, prefers articles, and ignores large wrappers (like Firefox)"
   },
   "optExact": {
     "message": "Exact: always starts from the element directly under the pointer"
@@ -114,7 +114,7 @@
     "message": "Move the highlight to the parent, child, or sibling element"
   },
   "optArrowPointer": {
-    "message": "Move the pointer"
+    "message": "Move the pointer (like Firefox)"
   },
   "optSaveButtons": {
     "message": "Save buttons"

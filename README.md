@@ -86,9 +86,9 @@ Screenshots are saved as PNG files named like `Screenshot 2025-01-31 at 14-05-09
 
 Right-click the toolbar button and choose **Options**.
 
-- **Element detection** is Smart (the default) or Exact. Exact always starts from the element directly under the pointer.
+- **Element detection** is Smart (the default, like Firefox) or Exact. Exact always starts from the element directly under the pointer.
 - **Element label** shows the highlighted element's tag, id, classes, and size next to it. It's off by default. Screen readers announce the element either way.
-- **Arrow keys** sets whether the arrow keys move the highlight through the element tree (the default) or move the pointer. See [Capture an element](#capture-an-element).
+- **Arrow keys** sets whether the arrow keys move the highlight through the element tree (the default) or move the pointer, like Firefox. See [Capture an element](#capture-an-element).
 - **Save buttons** lets you drag the Save visible and Save full page buttons anywhere, and keeps them there. It's on by default. Turn it off to keep them in the top-right corner.
 - **Cursor** uses the extension's crosshair instead of the system cursor. It's off by default. The arrow keys can't move the real cursor, so they move a crosshair the extension draws, which may not look like your system's. Turn this on to use that crosshair for the mouse too.
 - **Keyboard shortcut** shows the current shortcut, with a button to open the browser's shortcut page where you can change it.
