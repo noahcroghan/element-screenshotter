@@ -489,10 +489,11 @@ describe('settings', () => {
     await harness.start(page);
     await hover(150, 180); // div#inner
     await sleep(300);
-    // Slow animations down tenfold, so the 0.1s slide can't finish under the test.
+    // Slow animations down a hundredfold, so the 0.1s slide can't finish under
+    // the test even on slow CI runners.
     const cdp = await page.createCDPSession();
     await cdp.send('Animation.enable');
-    await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.1 });
+    await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.01 });
     try {
       await hover(400, 300); // div#card: the slide starts
       await hover(405, 305); // still div#card
