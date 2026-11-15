@@ -10,6 +10,7 @@ Human-facing docs come first: [the README](README.md) for users, [the developmen
 - The README must keep saying that the project is AI-generated.
 - Follow YAGNI. Clone Firefox's behaviour and fix real problems; don't add settings or features nobody asked for.
 - Write prose that is plain, concise, and ASCII-only.
+- Put scratch files (screenshots, notes, throwaway scripts, clones) in `out/scratch/`, never in the repository root. Everything generated goes under the git-ignored `out/`, except the built extension in `dist/`.
 - Leave changes uncommitted for the owner to review and test. Before handing work over, run `pnpm check`, and `pnpm test:e2e` when behaviour changes.
 - Commit only when the owner asks you to commit, and push only when they ask you to push. Being asked to commit is not permission to push.
 - Make atomic commits: one logical change per commit, with its code, tests, and docs together, so each commit builds and passes checks on its own. Split unrelated changes, even in the same file, into separate commits. Use Conventional Commit messages; the husky hook runs commitlint. After pushing, check CI. Changes that only touch Markdown files don't need it, since `pnpm check` already lints them. CI runs only on pushes to `main` and on pull requests, so a branch without a pull request gets none. Runs on pull requests from forks may wait for a maintainer to approve them; say so in your report rather than waiting.
@@ -33,4 +34,4 @@ Human-facing docs come first: [the README](README.md) for users, [the developmen
 
 `page.screenshot()` from puppeteer captures the overlay too. It's the quickest way to check visual changes. Don't pass `clip`: it resizes the viewport, and the overlay drops the hover highlight on resize.
 
-Firefox's original implementation is in `browser/components/screenshots/` at <https://github.com/mozilla-firefox/firefox>. Use a sparse clone if you need it locally.
+Firefox's original implementation is in `browser/components/screenshots/` at <https://github.com/mozilla-firefox/firefox>. Use a sparse clone in `out/scratch/` if you need it locally.
