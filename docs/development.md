@@ -38,19 +38,19 @@ pnpm test:e2e     # builds, then runs the browser tests
 
 ## Scripts
 
-| Command                        | What it does                                                               |
-| ------------------------------ | -------------------------------------------------------------------------- |
-| `pnpm build`                   | Bundle `src/` with esbuild and copy `static/` into `dist/`                 |
-| `pnpm watch`                   | Same, rebuilding on change                                                 |
-| `pnpm package`                 | Build and zip `dist/` into `artifacts/element-screenshotter-<version>.zip` |
-| `pnpm icons`                   | Re-render `static/icons/*.png` from the SVGs using the test browser        |
-| `pnpm typecheck`               | `tsc --noEmit` (TypeScript 7)                                              |
-| `pnpm lint`                    | ESLint with type-aware typescript-eslint rules                             |
-| `pnpm lint:md`                 | markdownlint on every Markdown file                                        |
-| `pnpm format` / `format:check` | Prettier                                                                   |
-| `pnpm test`                    | Unit tests (Vitest + happy-dom)                                            |
-| `pnpm test:e2e`                | End-to-end tests in a real browser                                         |
-| `pnpm check`                   | Everything except end-to-end tests                                         |
+| Command                        | What it does                                                         |
+| ------------------------------ | -------------------------------------------------------------------- |
+| `pnpm build`                   | Bundle `src/` with esbuild and copy `static/` into `dist/`           |
+| `pnpm watch`                   | Same, rebuilding on change                                           |
+| `pnpm package`                 | Build and zip `dist/` into `out/element-screenshotter-<version>.zip` |
+| `pnpm icons`                   | Re-render `static/icons/*.png` from the SVGs using the test browser  |
+| `pnpm typecheck`               | `tsc --noEmit` (TypeScript 7)                                        |
+| `pnpm lint`                    | ESLint with type-aware typescript-eslint rules                       |
+| `pnpm lint:md`                 | markdownlint on every Markdown file                                  |
+| `pnpm format` / `format:check` | Prettier                                                             |
+| `pnpm test`                    | Unit tests (Vitest + happy-dom)                                      |
+| `pnpm test:e2e`                | End-to-end tests in a real browser                                   |
+| `pnpm check`                   | Everything except end-to-end tests                                   |
 
 The scripts in `scripts/` are TypeScript, run with [tsx](https://tsx.is/). Node's own type stripping would do, but some Linux distributions build Node.js without it.
 
@@ -73,6 +73,8 @@ scripts/          build, zip, icon rendering, test-browser lookup, release notes
 test/unit/        fast tests for pure logic
 test/e2e/         browser tests and fixture pages
 docs/             design notes and this guide
+dist/             the built extension (git-ignored)
+out/              zips, test failure screenshots, scratch files (git-ignored)
 ```
 
 ## Tests
@@ -99,7 +101,7 @@ Environment variables:
 | `HEADFUL=1`    | Show the browser window. Handy for watching a failing test.                                              |
 | `DPR=1.25`     | Force a device scale factor. CI also runs at 1.25 and 2, because fractional scales catch stitching bugs. |
 
-To run one file or test: `pnpm exec vitest run --project e2e test/e2e/capture.test.ts -t "full page"`. Run `pnpm build` first, because only `test:e2e` builds for you. When a test fails, a screenshot of its page goes to `test-results/`.
+To run one file or test: `pnpm exec vitest run --project e2e test/e2e/capture.test.ts -t "full page"`. Run `pnpm build` first, because only `test:e2e` builds for you. When a test fails, a screenshot of its page goes to `out/test-results/`.
 
 The overlay lives in a closed shadow root, so tests can't query it. Instead, the content script exposes a read-only `snapshot()` (state, hovered element, selection) in its isolated world, and `Harness.snapshot()` reads it through puppeteer's extension realm. Pages can't see it.
 
@@ -188,7 +190,7 @@ Once the repository is public, each release also gets a signed [build provenance
 gh attestation verify element-screenshotter-x.y.z.zip --repo noahcroghan/element-screenshotter
 ```
 
-For a local build to share without releasing, run `pnpm package` and use `artifacts/element-screenshotter-<version>.zip`.
+For a local build to share without releasing, run `pnpm package` and use `out/element-screenshotter-<version>.zip`.
 
 ## Web stores
 

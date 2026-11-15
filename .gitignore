@@ -1,10 +1,7 @@
 *.crx
 *.pem
-*.zip
 .DS_Store
-.e2e-profile/
 Thumbs.db
-artifacts/
 dist/
 node_modules/
-test-results/
+out/

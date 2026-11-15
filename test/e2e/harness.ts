@@ -406,7 +406,7 @@ async function waitForBundledContentBlocker(browser: Browser, origin: string) {
 
 /**
  * Close a test's page. If the test failed, first save a screenshot (overlay
- * included) to test-results/, which CI uploads.
+ * included) to out/test-results/, which CI uploads.
  */
 export async function closePage(
   page: Page | undefined,
@@ -414,7 +414,7 @@ export async function closePage(
 ) {
   if (!page || page.isClosed()) return;
   if (task.result?.state === 'fail') {
-    const dir = join(ROOT, 'test-results');
+    const dir = join(ROOT, 'out', 'test-results');
     await mkdir(dir, { recursive: true });
     const name = task.name.replace(/[^a-z0-9]+/gi, '-').slice(0, 80);
     await page

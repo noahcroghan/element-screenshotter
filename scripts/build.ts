@@ -2,7 +2,7 @@
 //
 //   pnpm exec tsx scripts/build.ts           one-off build
 //   pnpm exec tsx scripts/build.ts --watch   rebuild on change
-//   pnpm exec tsx scripts/build.ts --zip     build and write artifacts/element-screenshotter-<version>.zip
+//   pnpm exec tsx scripts/build.ts --zip     build and write out/element-screenshotter-<version>.zip
 
 import * as esbuild from 'esbuild';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -81,7 +81,7 @@ if (args.has('--watch')) {
 } else {
   await Promise.all(entries.map((entry) => esbuild.build({ ...common, ...entry })));
   if (args.has('--zip')) {
-    const out = join(root, 'artifacts', `element-screenshotter-${pkg.version}.zip`);
+    const out = join(root, 'out', `element-screenshotter-${pkg.version}.zip`);
     await mkdir(dirname(out), { recursive: true });
     await zipDirectory(dist, out);
     console.log(`wrote ${relative(root, out)}`);

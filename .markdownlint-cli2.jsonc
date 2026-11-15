@@ -18,5 +18,5 @@
       "combine": "merge"
     }
   ],
-  "ignores": ["node_modules/**", "dist/**", "artifacts/**", "test-results/**"]
+  "ignores": ["node_modules/**", "dist/**", "out/**"]
 }

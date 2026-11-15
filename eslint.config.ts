@@ -27,7 +27,7 @@ const houseStyle: Linter.RulesRecord = {
 };
 
 export default defineConfig(
-  { ignores: ['dist/', 'artifacts/', 'node_modules/'] },
+  { ignores: ['dist/', 'out/', 'node_modules/'] },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   {
