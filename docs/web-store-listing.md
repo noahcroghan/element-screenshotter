@@ -42,7 +42,7 @@ Browsers don't let extensions capture their own pages (such as settings pages), 
 
 **Graphic assets:** the store icon is `static/icons/icon-128.png`. At least one screenshot is required, 1280x800 (preferred) or 640x400, up to five. They aren't made yet: take them by hand on a real page, showing the element highlight, a region selection, and the preview. The promo tiles and video are optional; leave them out.
 
-**Homepage and support URLs:** leave empty while the repository is private, since reviewers and users can't open a private repository. Once it is public, use the repository URL and its issues page.
+**Homepage and support URLs:** <https://github.com/noahcroghan/element-screenshotter> and <https://github.com/noahcroghan/element-screenshotter/issues>.
 
 ### Privacy tab
 
@@ -86,7 +86,7 @@ Edge uses Partner Center, with Packages, Availability, Properties, Privacy, and 
 - **Screenshots:** optional, up to six, 640x480 or 1280x800. The Chrome screenshots work, since 1280x800 is allowed in both stores.
 - **Promotional tiles and video:** optional; leave them out.
 - **Privacy policy:** required when the extension handles personal information. Use the same URL as Chrome.
-- **Properties page:** category Productivity, the closest match among the Edge Add-ons categories, and optionally a website and support contact. Leave the website empty while the repository is private.
+- **Properties page:** category Productivity, the closest match among the Edge Add-ons categories, and optionally a website and support contact: the same repository and issues URLs as Chrome.
 - **Privacy page:** the same single purpose, permission justifications, data practices, and "no remote code" answers as the Chrome Privacy tab. Microsoft requires them to match what the extension does and the privacy policy ([Microsoft Edge Add-ons developer policies](https://learn.microsoft.com/en-us/legal/microsoft-edge/extensions/developer-policies)).
 - **Submission:** the **Publish** button on Store listings sends the extension to certification, and it goes live as soon as it passes; there is no deferred publishing.
 - **Notes for certification:** "Click the toolbar button on any web page, hover an element, and click it. Then use Copy or Download in the toolbar under the selection. No account or test credentials are needed."

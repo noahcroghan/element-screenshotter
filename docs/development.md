@@ -157,7 +157,7 @@ Actions are pinned to commit SHAs. Dependabot updates them and the npm dependenc
 
 ### Private or public
 
-Some features are free only for public repositories. The workflows check `github.event.repository.private` and switch them on by themselves when the repository goes public, so the workflows don't need editing then.
+Some features are free only for public repositories. The repository is public, so they are on. The workflows still check `github.event.repository.private` and would switch them off by themselves if it went private again.
 
 | Feature                          | While private               | Once public                       |
 | -------------------------------- | --------------------------- | --------------------------------- |
@@ -166,7 +166,7 @@ Some features are free only for public repositories. The workflows check `github
 | Release provenance (attestation) | Step skipped                | Zip and `SHA256SUMS.txt` attested |
 | Pushes to `main` and releases    | Every OS (no change)        | Every OS (no change)              |
 
-A skipped job still counts as passing. The settings that have to be changed by hand on the day are in [the going-public checklist](going-public.md).
+A skipped job still counts as passing.
 
 ## Releasing
 

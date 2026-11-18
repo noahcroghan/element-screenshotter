@@ -4,7 +4,7 @@ Human-facing docs come first: [the README](README.md) for users, [the developmen
 
 ## Ground rules
 
-- The GitHub repository is **private**. Never change its visibility, and don't publish anywhere else (web stores, package registries) unless the owner asks. Ask before any other outward-facing action (accounts, secrets, settings) your task doesn't name.
+- The repository is public. Don't publish anywhere else (web stores, package registries) unless the owner asks. Ask before any other outward-facing action (accounts, secrets, settings) your task doesn't name.
 - Work is tracked as issues on the repo's GitHub Project board. Close or update the issues you work on.
 - Use **pnpm**, never npm or yarn.
 - The README must keep saying that the project is AI-generated.
