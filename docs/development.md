@@ -156,19 +156,6 @@ TypeScript 7 (the Go-based compiler) is what `tsc` runs, so `pnpm typecheck` get
 
 Actions are pinned to commit SHAs. Dependabot updates them and the npm dependencies weekly, using Conventional Commit messages.
 
-### Private or public
-
-Some features are free only for public repositories. The repository is public, so they are on. The workflows still check `github.event.repository.private` and would switch them off by themselves if it went private again.
-
-| Feature                          | While private               | Once public                       |
-| -------------------------------- | --------------------------- | --------------------------------- |
-| Pull request jobs                | Linux only, to save minutes | Linux, Windows, and macOS         |
-| CodeQL                           | Job skipped                 | Runs, plus once when made public  |
-| Release provenance (attestation) | Step skipped                | Zip and `SHA256SUMS.txt` attested |
-| Pushes to `main` and releases    | Every OS (no change)        | Every OS (no change)              |
-
-A skipped job still counts as passing.
-
 ## Releasing
 
 Releases are built by [`.github/workflows/release.yml`](../.github/workflows/release.yml) when a version tag is pushed. It runs the whole CI pipeline first, then publishes a GitHub release with the zip and a `SHA256SUMS.txt`, using that version's `CHANGELOG.md` section as the notes.
@@ -185,7 +172,7 @@ Releases are built by [`.github/workflows/release.yml`](../.github/workflows/rel
 
 The workflow refuses a tag that doesn't match `package.json`. Tags with a hyphen (`v1.1.0-beta.1`) become pre-releases.
 
-Once the repository is public, each release also gets a signed [build provenance attestation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations). To check a download:
+Starting with `v1.2.0`, each release includes a signed [build provenance attestation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations) for the zip and `SHA256SUMS.txt`. To check a download:
 
 ```sh
 gh attestation verify element-screenshotter-x.y.z.zip --repo noahcroghan/element-screenshotter
