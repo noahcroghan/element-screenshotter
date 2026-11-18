@@ -89,7 +89,7 @@ There are two suites: fast unit tests (`pnpm test`) and end-to-end tests in a re
 
 `test/e2e/` launches a real browser with the built extension through [puppeteer-core](https://pptr.dev/guides/chrome-extensions). It serves the pages in `test/e2e/fixtures/` and drives the extension the way a person would. The toolbar button is clicked with `page.triggerExtensionAction`, which grants `activeTab` for real. The tests then check the pixels of the downloaded or copied PNGs.
 
-The first run downloads [Chrome for Testing](https://developer.chrome.com/blog/chrome-for-testing) (about 150 MB) into `node_modules/.cache/`, so you don't need a browser installed. On a minimal Linux system, the browser may be missing shared libraries. `sudo pnpm dlx @puppeteer/browsers install chrome@stable --install-deps` installs them.
+The first run downloads [Chrome for Testing](https://developer.chrome.com/blog/chrome-for-testing) (about 150 MB) into `node_modules/.cache/`, so you don't need a browser installed. The download happens once, before any test file starts. If it stalls for 30 seconds or fails, it is started again from scratch, up to three times. On a minimal Linux system, the browser may be missing shared libraries. `sudo pnpm dlx @puppeteer/browsers install chrome@stable --install-deps` installs them.
 
 The fixtures use solid colours at known coordinates, so a test can say "the pixel at the bottom of the stitched image is magenta". Adding `/strict/` to a fixture path serves it with a strict Content Security Policy and Trusted Types enforced.
 

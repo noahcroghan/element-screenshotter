@@ -15,6 +15,7 @@ export default defineConfig({
           name: 'e2e',
           include: ['test/e2e/**/*.test.ts'],
           environment: 'node',
+          globalSetup: ['test/e2e/global-setup.ts'],
           // One real browser at a time; tests share it within a file.
           fileParallelism: false,
           testTimeout: 90_000,
