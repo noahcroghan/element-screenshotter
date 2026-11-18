@@ -69,7 +69,7 @@ There are no host permissions, so no host permission justification is needed.
 
 **Data usage:** tick **Website content**. Chrome counts screenshots of a page as user data even when they never leave the device ([User Data FAQ](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq), questions 2 to 4). The page title also goes into the file name. Leave every other data type unticked: settings contain no personal data, and nothing else is read. Then tick all three certifications (no selling or transfer to third parties, no unrelated use, no creditworthiness use); all are true.
 
-**Privacy policy URL:** the public URL where [the privacy policy](privacy-policy.md) is hosted. Chrome requires one even though data stays on the device (User Data FAQ, question 14).
+**Privacy policy URL:** <https://github.com/noahcroghan/element-screenshotter/blob/main/docs/privacy-policy.md>, the public page for [the privacy policy](privacy-policy.md). Chrome requires one even though data stays on the device (User Data FAQ, question 14).
 
 ### Distribution tab
 
