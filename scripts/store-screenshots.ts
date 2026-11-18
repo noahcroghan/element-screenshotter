@@ -1,5 +1,5 @@
-// Takes the Chrome Web Store and Edge Add-ons screenshots, 1280x800, with
-// the built extension on a saved copy of a real page.
+// Takes the Chrome Web Store screenshots, 1280x800, with the built
+// extension on a saved copy of a real page.
 //
 //   pnpm store:screenshots
 //

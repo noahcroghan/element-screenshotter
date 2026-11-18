@@ -195,7 +195,7 @@ For a local build to share without releasing, run `pnpm package` and use `out/el
 
 ## Web stores
 
-The Chrome Web Store and Edge Add-ons listings are prepared in the repository, but the owner creates the accounts, uploads, and submits. [The web store listing](web-store-listing.md) has the listing text, permission justifications, and the store requirements with links, and the stores link to [the privacy policy](privacy-policy.md). When permissions or data handling change, update both of them and the README's "Permissions and privacy" section together.
+The Chrome Web Store listing is prepared in the repository, but the owner creates the account, uploads, and submits. [The web store listing](web-store-listing.md) has the listing text, permission justifications, and the store requirements with links, and the stores link to [the privacy policy](privacy-policy.md). When permissions or data handling change, update both of them and the README's "Permissions and privacy" section together.
 
 ### Icons
 
@@ -203,25 +203,22 @@ There are two sources in `static/icons/`. `icon-toolbar.svg` is drawn on a 16 px
 
 ### Store screenshots
 
-`pnpm store:screenshots` builds the extension and writes the four store screenshots, 1280x800, to `out/store-screenshots/`: the highlight, a selected element, a selected region, and the preview. Run it after any visible change to the overlay, then upload the new images to both stores in that order.
+`pnpm store:screenshots` builds the extension and writes the four store screenshots, 1280x800, to `out/store-screenshots/`: the highlight, a selected element, a selected region, and the preview. Run it after any visible change to the overlay, then upload the new images to the store in that order.
 
 The page is a saved copy of a Wikipedia article in `test/e2e/fixtures/store/`, and the script blocks every request outside the local test server, so nothing on the web can change the images. Animations are turned off, so repeated runs give the same images: byte-identical, or a few pixels of anti-aliasing apart. Fonts come from the operating system, so other systems draw the text slightly differently. The published screenshots were taken on Windows. That folder's README has the page's licenses and how to replace it with `scripts/store-page.ts`.
 
 ### Upload workflow
 
-[`.github/workflows/store-upload.yml`](../.github/workflows/store-upload.yml) is started by hand from the Actions tab with a release tag and a store (`chrome`, `edge`, or `both`). It downloads that release's zip, checks it against `SHA256SUMS.txt`, and uploads it as a draft. It never submits for review or publishes; do that in each store's dashboard. The item must already exist in the store, because neither API creates new items.
+[`.github/workflows/store-upload.yml`](../.github/workflows/store-upload.yml) is started by hand from the Actions tab with a release tag. It downloads that release's zip, checks it against `SHA256SUMS.txt`, and uploads it to the Chrome Web Store as a draft. It never submits for review or publishes; do that in the Developer Dashboard. The item must already exist in the store, because the API doesn't create new items.
 
 The job runs in a `web-store` environment. Give the environment required reviewers so each run needs approval, and add these environment secrets:
 
-| Secret              | Where it comes from                                                                                                                             |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CWS_CLIENT_ID`     | OAuth client in a Google Cloud project with the Chrome Web Store API ([guide](https://developer.chrome.com/docs/webstore/using-api))            |
-| `CWS_CLIENT_SECRET` | The same OAuth client                                                                                                                           |
-| `CWS_REFRESH_TOKEN` | OAuth Playground with the `https://www.googleapis.com/auth/chromewebstore` scope, signed in as the publisher account                            |
-| `CWS_PUBLISHER_ID`  | Chrome Web Store Developer Dashboard, Publisher > Settings                                                                                      |
-| `CWS_EXTENSION_ID`  | The item's ID in the Developer Dashboard                                                                                                        |
-| `EDGE_CLIENT_ID`    | Partner Center, Microsoft Edge > Publish API ([guide](https://learn.microsoft.com/en-us/microsoft-edge/extensions/update/api/using-addons-api)) |
-| `EDGE_API_KEY`      | The same page. API keys expire, so renew it there when uploads start failing.                                                                   |
-| `EDGE_PRODUCT_ID`   | Partner Center, the extension's overview page                                                                                                   |
+| Secret              | Where it comes from                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `CWS_CLIENT_ID`     | OAuth client in a Google Cloud project with the Chrome Web Store API ([guide](https://developer.chrome.com/docs/webstore/using-api)) |
+| `CWS_CLIENT_SECRET` | The same OAuth client                                                                                                                |
+| `CWS_REFRESH_TOKEN` | OAuth Playground with the `https://www.googleapis.com/auth/chromewebstore` scope, signed in as the publisher account                 |
+| `CWS_PUBLISHER_ID`  | Chrome Web Store Developer Dashboard, Publisher > Settings                                                                           |
+| `CWS_EXTENSION_ID`  | The item's ID in the Developer Dashboard                                                                                             |
 
-Only the secrets for the chosen store are needed. A missing one fails the run before anything is downloaded.
+A missing secret fails the run before anything is downloaded.

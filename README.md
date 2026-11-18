@@ -2,7 +2,7 @@
 
 A screenshot tool for Chromium browsers, modelled on the one built into Firefox. Point at part of a page and it highlights the element under your cursor. Click to capture just that element, or drag to capture any region. You can also save the visible part of the page or the full page, top to bottom.
 
-It works in Chrome, Edge, Brave, Vivaldi, Helium, and other Chromium-based browsers (version 116 or newer).
+It works in Chrome, Brave, Vivaldi, Helium, and other Chromium-based browsers (version 116 or newer).
 
 > [!NOTE]
 > This project was written by an AI coding agent: Anthropic's Claude Opus 5.5, running in the Pi coding harness (version 1.5.0). Parts of it are adapted from Firefox's own screenshot code and the Zen browser's changes to it. See [Credits](#credits).
@@ -12,7 +12,7 @@ It works in Chrome, Edge, Brave, Vivaldi, Helium, and other Chromium-based brows
 The extension isn't in any web store, so you load it yourself:
 
 1. Download `element-screenshotter-[version].zip` from the [latest release](../../releases/latest) and unzip it. Or [build it from source](docs/development.md#quick-start), which gives you a `dist` folder. Either way you need a folder containing `manifest.json`.
-2. Open your browser's extensions page (`chrome://extensions`, `edge://extensions`, and so on).
+2. Open your browser's extensions page (`chrome://extensions` in Chrome).
 3. Turn on **Developer mode**.
 4. Click **Load unpacked** and pick that folder. Keep the folder where it is: the browser loads the extension from it each time it starts.
 5. Optionally, pin the extension to your toolbar.

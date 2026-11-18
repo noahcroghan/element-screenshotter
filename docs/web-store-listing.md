@@ -1,6 +1,6 @@
 # Web store listing
 
-This is the text to paste into the Chrome Web Store Developer Dashboard and Microsoft Partner Center, and the store rules it was checked against. Keep it in step with the manifest, the README's "Permissions and privacy" section, and [the privacy policy](privacy-policy.md). The store documentation linked below is what counts when the rules change; it was last read on 2026-11-09.
+This is the text to paste into the Chrome Web Store Developer Dashboard, and the store rules it was checked against. Keep it in step with the manifest, the README's "Permissions and privacy" section, and [the privacy policy](privacy-policy.md). The store documentation linked below is what counts when the rules change; it was last read on 2026-11-09.
 
 ## Chrome Web Store
 
@@ -75,24 +75,6 @@ There are no host permissions, so no host permission justification is needed.
 
 Free, public, all regions. Optionally, choose deferred publishing in the submission dialog, so an approved item waits for you to publish it ([Publish in the Chrome Web Store](https://developer.chrome.com/docs/webstore/publish)).
 
-## Microsoft Edge Add-ons
-
-Edge uses Partner Center, with Packages, Availability, Properties, Privacy, and Store listings pages ([Publish a Microsoft Edge extension](https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension)). Reuse the Chrome text. Where Edge differs:
-
-- **Name and short description** come from the manifest, as in Chrome.
-- **Description:** required, 250 to 10,000 characters. The Chrome detailed description above fits as is.
-- **Extension logo:** square, at least 128x128, 300x300 recommended. `static/icons/icon-128.png` meets the minimum.
-- **Search terms:** optional. Leave empty rather than risk keyword stuffing.
-- **Screenshots:** optional, up to six, 640x480 or 1280x800. Upload the same four as Chrome, since 1280x800 is allowed in both stores.
-- **Promotional tiles and video:** optional; leave them out.
-- **Privacy policy:** required when the extension handles personal information. Use the same URL as Chrome.
-- **Properties page:** category Productivity, the closest match among the Edge Add-ons categories, and optionally a website and support contact: the same repository and issues URLs as Chrome.
-- **Privacy page:** the same single purpose, permission justifications, data practices, and "no remote code" answers as the Chrome Privacy tab. Microsoft requires them to match what the extension does and the privacy policy ([Microsoft Edge Add-ons developer policies](https://learn.microsoft.com/en-us/legal/microsoft-edge/extensions/developer-policies)).
-- **Submission:** the **Publish** button on Store listings sends the extension to certification, and it goes live as soon as it passes; there is no deferred publishing.
-- **Notes for certification:** "Click the toolbar button on any web page, hover an element, and click it. Then use Copy or Download in the toolbar under the selection. No account or test credentials are needed."
-
-The end-to-end suite passed in Edge 157 on Windows (45 of 45 tests, 2026-11-09).
-
 ## Policy checks
 
 Each point below was checked against the current text of the linked policy.
@@ -110,4 +92,3 @@ Each point below was checked against the current text of the linked policy.
 | [Code readability](https://developer.chrome.com/docs/webstore/program-policies/code-readability)                                                                                  | esbuild bundles but doesn't minify, so reviewers can read the code.                                                                                                              |
 | [Mature content](https://developer.chrome.com/docs/webstore/rating)                                                                                                               | Not mature.                                                                                                                                                                      |
 | [Image guidelines](https://developer.chrome.com/docs/webstore/images)                                                                                                             | 128 px icon with 96x96 artwork and 16 px transparent padding; screenshots 1280x800.                                                                                              |
-| [Edge developer policies](https://learn.microsoft.com/en-us/legal/microsoft-edge/extensions/developer-policies)                                                                   | The same answers apply: accurate listing, minimal permissions, a privacy policy, no remote code.                                                                                 |

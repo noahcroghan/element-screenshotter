@@ -1,13 +1,11 @@
 name: Store upload
 
-# Uploads a GitHub release's zip as a draft to the Chrome Web Store and/or
-# Microsoft Edge Add-ons. Upload only: this workflow never submits for review
-# or publishes. The owner does that by hand in each store's dashboard. Neither
-# store's publish endpoint appears anywhere in this file, on purpose.
+# Uploads a GitHub release's zip as a draft to the Chrome Web Store. Upload
+# only: this workflow never submits for review or publishes. The owner does
+# that by hand in the Developer Dashboard. The store's publish endpoint
+# appears nowhere in this file, on purpose.
 #
-# Store docs:
-#   https://developer.chrome.com/docs/webstore/using-api
-#   https://learn.microsoft.com/en-us/microsoft-edge/extensions/update/api/using-addons-api
+# Store docs: https://developer.chrome.com/docs/webstore/using-api
 on:
   workflow_dispatch:
     inputs:
@@ -15,11 +13,6 @@ on:
         description: Release tag to upload, for example v1.0.0
         required: true
         type: string
-      store:
-        description: Which store to upload to
-        required: true
-        type: choice
-        options: [chrome, edge, both]
 
 permissions:
   contents: read
@@ -30,7 +23,7 @@ concurrency:
 
 jobs:
   upload:
-    name: Upload ${{ inputs.tag }} to ${{ inputs.store }}
+    name: Upload ${{ inputs.tag }} to the Chrome Web Store
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # Create this environment with required reviewers so each run needs approval.
@@ -38,29 +31,18 @@ jobs:
     steps:
       - name: Check secrets
         env:
-          STORE: ${{ inputs.store }}
           CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
           CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
           CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
           CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
           CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
-          EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
-          EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
-          EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
         run: |
           missing=()
-          if [ "$STORE" != edge ]; then
-            for name in CWS_CLIENT_ID CWS_CLIENT_SECRET CWS_REFRESH_TOKEN CWS_PUBLISHER_ID CWS_EXTENSION_ID; do
-              [ -n "${!name}" ] || missing+=("$name")
-            done
-          fi
-          if [ "$STORE" != chrome ]; then
-            for name in EDGE_CLIENT_ID EDGE_API_KEY EDGE_PRODUCT_ID; do
-              [ -n "${!name}" ] || missing+=("$name")
-            done
-          fi
+          for name in CWS_CLIENT_ID CWS_CLIENT_SECRET CWS_REFRESH_TOKEN CWS_PUBLISHER_ID CWS_EXTENSION_ID; do
+            [ -n "${!name}" ] || missing+=("$name")
+          done
           if [ ${#missing[@]} -gt 0 ]; then
-            echo "::error::Missing secrets in the web-store environment: ${missing[*]}. See docs/web-store-listing.md."
+            echo "::error::Missing secrets in the web-store environment: ${missing[*]}. See docs/development.md (Upload workflow)."
             exit 1
           fi
 
@@ -80,7 +62,6 @@ jobs:
           echo "ZIP=$PWD/${zips[0]}" >> "$GITHUB_ENV"
 
       - name: Upload to the Chrome Web Store
-        if: ${{ inputs.store != 'edge' }}
         env:
           CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
           CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
@@ -112,32 +93,3 @@ jobs:
             exit 1
           fi
           echo "Uploaded. Review the draft and submit it in the Developer Dashboard."
-
-      - name: Upload to Microsoft Edge Add-ons
-        if: ${{ inputs.store != 'chrome' }}
-        env:
-          EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
-          EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
-          EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
-        run: |
-          api="https://api.addons.microsoftedge.microsoft.com/v1/products/$EDGE_PRODUCT_ID/submissions/draft/package"
-          headers=$(mktemp)
-          curl --fail-with-body --silent --show-error -X POST -D "$headers" \
-            -H "Authorization: ApiKey $EDGE_API_KEY" -H "X-ClientID: $EDGE_CLIENT_ID" \
-            -H "Content-Type: application/zip" -T "$ZIP" "$api"
-          operation=$(grep -i '^location:' "$headers" | tr -d '\r' | awk '{print $2}' | sed 's#.*/##')
-          [ -n "$operation" ] || { echo "::error::No operation ID in the upload response"; exit 1; }
-          for _ in $(seq 30); do
-            sleep 10
-            response=$(curl --fail-with-body --silent --show-error \
-              -H "Authorization: ApiKey $EDGE_API_KEY" -H "X-ClientID: $EDGE_CLIENT_ID" \
-              "$api/operations/$operation")
-            status=$(echo "$response" | jq -r .status)
-            [ "$status" = InProgress ] || break
-          done
-          echo "$response" | jq .
-          if [ "$status" != Succeeded ]; then
-            echo "::error::Edge Add-ons upload status: $status"
-            exit 1
-          fi
-          echo "Uploaded. Review the draft and publish it in Partner Center."
