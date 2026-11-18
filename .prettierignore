@@ -1,1 +1,3 @@
 pnpm-lock.yaml
+# A saved copy of a real page; see scripts/store-page.ts.
+test/e2e/fixtures/store/screenshot-article.html

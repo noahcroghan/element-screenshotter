@@ -44,6 +44,7 @@ pnpm test:e2e     # builds, then runs the browser tests
 | `pnpm watch`                   | Same, rebuilding on change                                           |
 | `pnpm package`                 | Build and zip `dist/` into `out/element-screenshotter-<version>.zip` |
 | `pnpm icons`                   | Re-render `static/icons/*.png` from the SVGs using the test browser  |
+| `pnpm store:screenshots`       | Build, then take the store screenshots into `out/store-screenshots/` |
 | `pnpm typecheck`               | `tsc --noEmit` (TypeScript 7)                                        |
 | `pnpm lint`                    | ESLint with type-aware typescript-eslint rules                       |
 | `pnpm lint:md`                 | markdownlint on every Markdown file                                  |
@@ -69,12 +70,12 @@ src/
   options/        settings page
   shared/         pure helpers used everywhere (geometry, filenames, settings, messages)
 static/           manifest.json, icons, _locales (copied into dist/ as is)
-scripts/          build, zip, icon rendering, test-browser lookup, release notes
+scripts/          build, zip, icon rendering, test-browser lookup, release notes, store screenshots
 test/unit/        fast tests for pure logic
 test/e2e/         browser tests and fixture pages
 docs/             design notes and this guide
 dist/             the built extension (git-ignored)
-out/              zips, test failure screenshots, scratch files (git-ignored)
+out/              zips, test failure and store screenshots, scratch files (git-ignored)
 ```
 
 ## Tests
@@ -199,6 +200,12 @@ The Chrome Web Store and Edge Add-ons listings are prepared in the repository, b
 ### Icons
 
 There are two sources in `static/icons/`. `icon-toolbar.svg` is drawn on a 16 px grid and fills its square, for the 16 and 32 px toolbar icons. `icon.svg` follows the Chrome Web Store guideline of 96x96 artwork inside 16 px of transparent padding, for the 48 and 128 px icons. Run `pnpm icons` after editing either one.
+
+### Store screenshots
+
+`pnpm store:screenshots` builds the extension and writes the four store screenshots, 1280x800, to `out/store-screenshots/`: the highlight, a selected element, a selected region, and the preview. Run it after any visible change to the overlay, then upload the new images to both stores in that order.
+
+The page is a saved copy of a Wikipedia article in `test/e2e/fixtures/store/`, and the script blocks every request outside the local test server, so nothing on the web can change the images. Animations are turned off, so repeated runs give the same images: byte-identical, or a few pixels of anti-aliasing apart. Fonts come from the operating system, so other systems draw the text slightly differently. The published screenshots were taken on Windows. That folder's README has the page's licenses and how to replace it with `scripts/store-page.ts`.
 
 ### Upload workflow
 

@@ -40,7 +40,7 @@ The interaction design follows the screenshot tool built into Firefox, and parts
 Browsers don't let extensions capture their own pages (such as settings pages), web store pages, or the built-in PDF viewer.
 ```
 
-**Graphic assets:** the store icon is `static/icons/icon-128.png`. At least one screenshot is required, 1280x800 (preferred) or 640x400, up to five. They aren't made yet: take them by hand on a real page, showing the element highlight, a region selection, and the preview. The promo tiles and video are optional; leave them out.
+**Graphic assets:** the store icon is `static/icons/icon-128.png`. At least one screenshot is required, 1280x800 (preferred) or 640x400, up to five. Make them with `pnpm store:screenshots` (see [Store screenshots](development.md#store-screenshots)) and upload all four from `out/store-screenshots/` in file name order. The promo tiles and video are optional; leave them out.
 
 **Homepage and support URLs:** <https://github.com/noahcroghan/element-screenshotter> and <https://github.com/noahcroghan/element-screenshotter/issues>.
 
@@ -83,7 +83,7 @@ Edge uses Partner Center, with Packages, Availability, Properties, Privacy, and 
 - **Description:** required, 250 to 10,000 characters. The Chrome detailed description above fits as is.
 - **Extension logo:** square, at least 128x128, 300x300 recommended. `static/icons/icon-128.png` meets the minimum.
 - **Search terms:** optional. Leave empty rather than risk keyword stuffing.
-- **Screenshots:** optional, up to six, 640x480 or 1280x800. The Chrome screenshots work, since 1280x800 is allowed in both stores.
+- **Screenshots:** optional, up to six, 640x480 or 1280x800. Upload the same four as Chrome, since 1280x800 is allowed in both stores.
 - **Promotional tiles and video:** optional; leave them out.
 - **Privacy policy:** required when the extension handles personal information. Use the same URL as Chrome.
 - **Properties page:** category Productivity, the closest match among the Edge Add-ons categories, and optionally a website and support contact: the same repository and issues URLs as Chrome.
