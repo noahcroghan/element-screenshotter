@@ -6,6 +6,10 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 Changes since the last release.
 
+## [1.2.0] - 2026-11-18
+
+A highlight that slides from one element to the next like the Zen browser's, a Reset defaults button, and the page dimmed like Firefox.
+
 ### Added
 
 - A **Highlight** setting, on by default, that draws the outline around the hovered element like the Zen browser does: a rounded line that slides from one element to the next. Turn it off for Firefox's dashed outline.
