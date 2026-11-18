@@ -6,6 +6,7 @@ Thanks for helping. This project is AI-generated: an AI coding agent wrote the c
 
 - Report bugs and ideas in [issues](../../issues/new/choose). The forms ask for what's needed to reproduce a bug.
 - Don't report security problems in public issues. See the [security policy](SECURITY.md).
+- Follow the [code of conduct](CODE_OF_CONDUCT.md).
 - The goal is to work like Firefox Screenshots in Chromium browsers. Bug fixes and closer matches to Firefox are welcome. Features or settings that Firefox doesn't have usually aren't, so open an issue to discuss those before writing code.
 
 ## Making a change

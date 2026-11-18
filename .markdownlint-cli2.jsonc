@@ -16,6 +16,12 @@
       "filter": [".github/PULL_REQUEST_TEMPLATE.md"],
       "config": { "MD041": false },
       "combine": "merge"
+    },
+    {
+      // The Contributor Covenant's own text, kept as published.
+      "filter": ["CODE_OF_CONDUCT.md"],
+      "config": { "intro-before-subheading": false },
+      "combine": "merge"
     }
   ],
   "gitignore": true
