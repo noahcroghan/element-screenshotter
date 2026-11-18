@@ -40,7 +40,7 @@ The interaction design follows the screenshot tool built into Firefox, and parts
 Browsers don't let extensions capture their own pages (such as settings pages), web store pages, or the built-in PDF viewer.
 ```
 
-**Graphic assets:** the store icon is `static/icons/icon-128.png`. At least one screenshot is required, 1280x800 (preferred) or 640x400, up to five. Make them with `pnpm store:screenshots` (see [Store screenshots](development.md#store-screenshots)) and upload all four from `out/store-screenshots/` in file name order. The promo tiles and video are optional; leave them out.
+**Graphic assets:** the store icon is `static/icons/icon-128.png`. At least one screenshot is required, 1280x800 (preferred) or 640x400, up to five. Make them with `pnpm store:screenshots` (see [Store screenshots](development.md#store-screenshots)) and upload all four from `out/store-screenshots/` in file name order, under the global graphic assets only. Localized screenshots are shown before the global ones, so uploading to both would show each image twice. The promo tiles and video are optional; leave them out.
 
 **Homepage and support URLs:** <https://github.com/noahcroghan/element-screenshotter> and <https://github.com/noahcroghan/element-screenshotter/issues>.
 
