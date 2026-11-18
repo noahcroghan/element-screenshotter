@@ -36,6 +36,11 @@ describe('extractNotes', () => {
     expect(extractNotes(changelog, '2.0.0')).toBeNull();
   });
 
+  test('treats regex characters in the version literally', () => {
+    expect(extractNotes(changelog, '1.1.*')).toBeNull();
+    expect(extractNotes(changelog, '(1.1.0)')).toBeNull();
+  });
+
   test('the real changelog has notes for the current version', async () => {
     const pkg = JSON.parse(await readFile('package.json', 'utf8')) as { version: string };
     expect(extractNotes(await readFile('CHANGELOG.md', 'utf8'), pkg.version)).toBeTruthy();

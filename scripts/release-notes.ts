@@ -10,7 +10,8 @@ import { join, resolve } from 'node:path';
 
 export function extractNotes(changelog: string, version: string): string | null {
   const lines = changelog.split(/\r?\n/);
-  const heading = new RegExp(`^## \\[?${version.replace(/\./g, '\\.')}\\]?(\\s|$)`);
+  const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const heading = new RegExp(`^## \\[?${escaped}\\]?(\\s|$)`);
   const start = lines.findIndex((line) => heading.test(line));
   if (start === -1) return null;
   const nextHeading = lines.findIndex((line, index) => index > start && line.startsWith('## '));
