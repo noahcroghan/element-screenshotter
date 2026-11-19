@@ -12,6 +12,12 @@
   "globs": ["**/*.md", ".github/**/*.md"],
   "overrides": [
     {
+      // Claude Code reads this file for its import line alone; it has no title.
+      "filter": ["CLAUDE.md"],
+      "config": { "MD041": false },
+      "combine": "merge"
+    },
+    {
       // GitHub prefills the pull request body with this; it has no title.
       "filter": [".github/PULL_REQUEST_TEMPLATE.md"],
       "config": { "MD041": false },
