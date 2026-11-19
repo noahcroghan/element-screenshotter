@@ -183,7 +183,7 @@ For a local build to share without releasing, run `pnpm package` and use `out/el
 
 ## Web stores
 
-The Chrome Web Store listing is prepared in the repository, but the owner creates the account, uploads, and submits. [The web store listing](web-store-listing.md) has the listing text, permission justifications, and the store requirements with links, and the stores link to [the privacy policy](privacy-policy.md). When permissions or data handling change, update both of them and the README's "Permissions and privacy" section together.
+The extension is published on the [Chrome Web Store](https://chromewebstore.google.com/detail/element-screenshotter/plafmhiidddpkdnfjgiommaaobkaabjj) (item ID `plafmhiidddpkdnfjgiommaaobkaabjj`). The listing is prepared in the repository, but the owner submits each version for review. [The web store listing](web-store-listing.md) has the listing text, permission justifications, and the store requirements with links, and the stores link to [the privacy policy](privacy-policy.md). When permissions or data handling change, update both of them and the README's "Permissions and privacy" section together.
 
 ### Icons
 

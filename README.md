@@ -8,7 +8,9 @@ It works in Chrome, Brave, Vivaldi, Helium, and other Chromium-based browsers (v
 
 ## Install
 
-The extension isn't in any web store, so you load it yourself:
+Install it from the [Chrome Web Store](https://chromewebstore.google.com/detail/element-screenshotter/plafmhiidddpkdnfjgiommaaobkaabjj). This works in other Chromium browsers too.
+
+To load it yourself instead, for example to try a version the store doesn't have yet:
 
 1. Download `element-screenshotter-[version].zip` from the [latest release](../../releases/latest) and unzip it. Or [build it from source](docs/development.md#quick-start), which gives you a `dist` folder. Either way you need a folder containing `manifest.json`.
 2. Open your browser's extensions page (`chrome://extensions` in Chrome).
