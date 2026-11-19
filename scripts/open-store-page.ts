@@ -1,8 +1,8 @@
-// Opens the store page for the store screenshots: 1280x800,
+// Opens the store page for the store screenshots and the demo: 1280x800,
 // scrolled past the site's header, with every request outside the local
 // test server blocked, so nothing on the web can change the recording.
 //
-// Also names the elements the pointer goes to, by what they are in any
+// Also names the elements both scripts point at, by what they are in any
 // Wikipedia article saved by store-page.ts ("the first paragraph"), not by
 // position, so other fonts or a replaced page don't move them.
 
@@ -16,14 +16,17 @@ const SCROLL_Y = 80;
 export interface StorePageOptions {
   /** Turn off transitions, so each image is the same on every run. */
   reducedMotion?: boolean;
+  /** The viewport, 1280x800 (the store's size) unless given. */
+  width?: number;
+  height?: number;
 }
 
 export async function openStorePage(
   harness: Harness,
-  { reducedMotion = false }: StorePageOptions = {},
+  { reducedMotion = false, width = 1280, height = 800 }: StorePageOptions = {},
 ): Promise<Page> {
   const page = await harness.open(STORE_PAGE);
-  await page.setViewport({ width: 1280, height: 800 });
+  await page.setViewport({ width, height });
   await page.setRequestInterception(true);
   page.on('request', (request) => {
     const url = request.url();

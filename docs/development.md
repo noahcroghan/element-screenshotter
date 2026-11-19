@@ -45,6 +45,7 @@ pnpm test:e2e     # builds, then runs the browser tests
 | `pnpm package`                 | Build and zip `dist/` into `out/element-screenshotter-<version>.zip` |
 | `pnpm icons`                   | Re-render `static/icons/*.png` from the SVGs using the test browser  |
 | `pnpm store:screenshots`       | Build, then take the store screenshots into `out/store-screenshots/` |
+| `pnpm demo`                    | Build, then record the demo GIF into `out/demo/demo.gif`             |
 | `pnpm typecheck`               | `tsc --noEmit` (TypeScript 7)                                        |
 | `pnpm lint`                    | ESLint with type-aware typescript-eslint rules                       |
 | `pnpm lint:md`                 | markdownlint on every Markdown file                                  |
@@ -70,12 +71,12 @@ src/
   options/        settings page
   shared/         pure helpers used everywhere (geometry, filenames, settings, messages)
 static/           manifest.json, icons, _locales (copied into dist/ as is)
-scripts/          build, zip, icon rendering, test-browser lookup, release notes, store screenshots
+scripts/          build, zip, icon rendering, test-browser lookup, release notes, store screenshots, demo GIF
 test/unit/        fast tests for pure logic
 test/e2e/         browser tests and fixture pages
 docs/             design notes and this guide
 dist/             the built extension (git-ignored)
-out/              zips, test failure and store screenshots, scratch files (git-ignored)
+out/              zips, test failure, store and demo output, scratch files (git-ignored)
 ```
 
 ## Tests
@@ -192,7 +193,19 @@ There are two sources in `static/icons/`. `icon-toolbar.svg` is drawn on a 16 px
 
 `pnpm store:screenshots` builds the extension and writes the four store screenshots, 1280x800, to `out/store-screenshots/`: the highlight, a selected element, a selected region, and the preview. Run it after any visible change to the overlay, then upload the new images to the store in that order.
 
-The page is a saved copy of a Wikipedia article in `test/e2e/fixtures/store/`, and the script blocks every request outside the local test server, so nothing on the web can change the images. Animations are turned off, so repeated runs give the same images: byte-identical, or a few pixels of anti-aliasing apart. Fonts come from the operating system, so other systems draw the text slightly differently. The pointer goes to elements, not fixed coordinates, so the pictures show the same things everywhere: the region around the opening paragraphs, for example, grows with taller text. The elements are named in `scripts/open-store-page.ts` by what they are in any Wikipedia article ("the first paragraph", "the first figure"). The published screenshots were taken on Windows. That folder's README has the page's licenses and how to replace it with `scripts/store-page.ts`.
+The page is a saved copy of a Wikipedia article in `test/e2e/fixtures/store/`, and the script blocks every request outside the local test server, so nothing on the web can change the images. Animations are turned off, so repeated runs give the same images: byte-identical, or a few pixels of anti-aliasing apart. Fonts come from the operating system, so other systems draw the text slightly differently. The pointer goes to elements, not fixed coordinates, so the pictures show the same things everywhere: the region around the opening paragraphs, for example, grows with taller text. The elements are named in `scripts/open-store-page.ts` by what they are in any Wikipedia article ("the first paragraph", "the first figure"), and the demo uses the same ones. The published screenshots were taken on Windows. That folder's README has the page's licenses and how to replace it with `scripts/store-page.ts`.
+
+### Demo GIF
+
+`pnpm demo` builds the extension and records the README's demo into `out/demo/demo.gif`, at 1024x640 on the same saved page as the store screenshots. The pointer passes over two paragraphs and a figure, the highlight follows it, and a click selects the figure.
+
+The storyboard, the list of steps at the top of `scripts/demo.ts`, points at the same named elements as the store screenshots, not at positions, so other fonts or a replaced page don't move them. After each hover the script checks that the extension highlights exactly that element. If the pointer lands on a link, it moves a little and tries again; if that keeps failing, the script stops and says which target to change.
+
+The movement in `scripts/demo-pointer.ts` follows the usual model of human pointing: a fast first movement that lands a little short, then a small correction, taking longer for farther and smaller targets. Paths bend slightly, positions are whole pixels, and the pointer drifts a pixel or two at rest. A fixed seed makes every run move the same way. The operating system's cursor isn't recorded, so the demo turns on the **Cursor** setting, which draws the extension's own crosshair into the page.
+
+Frames come from the DevTools screencast, and `scripts/demo-recording.ts` encodes them with [sharp](https://sharp.pixelplumbing.com/), so nothing beyond `pnpm install` is needed. Like the end-to-end tests, a minimal Linux system may need the browser's shared libraries first (see [End-to-end tests](#end-to-end-tests)).
+
+To change the README's GIF, run `pnpm demo` and copy `out/demo/demo.gif` to `docs/media/demo.gif`. Each new version adds to the repository's history, so don't replace it for small changes. It was checked on Windows and on Linux (WSL), not on macOS.
 
 ### Upload workflow
 

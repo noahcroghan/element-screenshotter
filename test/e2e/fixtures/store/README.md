@@ -16,4 +16,4 @@ Wikipedia is a trademark of the Wikimedia Foundation. This project is not made o
 
 ## Replacing the page
 
-Run `pnpm exec tsx scripts/store-page.ts [url]` only to change the page on purpose. Then update the revision, date, and licenses above, and run `pnpm store:screenshots`. It points at elements named in `scripts/open-store-page.ts` ("the first paragraph"), not at positions, so it follows a new layout, but check every image: a different article may have no figure on its first screen, or a paragraph that suits the pictures less.
+Run `pnpm exec tsx scripts/store-page.ts [url]` only to change the page on purpose. Then update the revision, date, and licenses above, and run `pnpm store:screenshots` and `pnpm demo`. Both point at elements named in `scripts/open-store-page.ts` ("the first paragraph"), not at positions, so they follow a new layout, but check every image: a different article may have no figure on its first screen, or a paragraph that suits the pictures less. The demo stops if a target no longer works.

@@ -23,6 +23,7 @@
     "test": "vitest run --project unit",
     "test:e2e": "pnpm build && vitest run --project e2e",
     "store:screenshots": "pnpm build && tsx scripts/store-screenshots.ts",
+    "demo": "pnpm build && tsx scripts/demo.ts",
     "check": "pnpm typecheck && pnpm lint && pnpm lint:md && pnpm format:check && pnpm test",
     "prepare": "husky"
   },
@@ -46,6 +47,7 @@
     "pngjs": "^7.0.0",
     "prettier": "^3.10.1",
     "puppeteer-core": "^25.17.0",
+    "sharp": "^0.35.5",
     "tsx": "^4.23.15",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.72.2",

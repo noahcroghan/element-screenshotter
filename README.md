@@ -2,6 +2,8 @@
 
 A screenshot tool for Chromium browsers, modelled on the one built into Firefox. Point at part of a page and it highlights the element under your cursor. Click to capture just that element, or drag to capture any region. You can also save the visible part of the page or the full page, top to bottom.
 
+![Element Screenshotter in use: as the pointer moves over a page, the highlight follows it from paragraph to figure, and a click selects the figure.](docs/media/demo.gif)
+
 It works in Chrome, Brave, Vivaldi, Helium, and other Chromium-based browsers (version 116 or newer).
 
 > [!NOTE]
