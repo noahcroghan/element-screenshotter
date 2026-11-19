@@ -6,46 +6,40 @@
 // The page is test/e2e/fixtures/store/screenshot-article.html (see
 // scripts/store-page.ts), and every request outside the local server is
 // blocked, so the same build gives the same images. Fonts come from the
-// operating system, so compare images made on the same one.
+// operating system, so compare images made on the same one. The pointer goes
+// to elements found by what they are (see open-store-page.ts), not to fixed
+// coordinates, so the pictures show the same things on every system.
 
 import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Page } from 'puppeteer-core';
 import { Harness, sleep } from '../test/e2e/harness.ts';
+import {
+  boxOf,
+  FIGURE,
+  FIGURE_IMAGE,
+  FIRST_PARAGRAPH,
+  openStorePage,
+  SECOND_PARAGRAPH,
+} from './open-store-page.ts';
 
 const OUTPUT = join(import.meta.dirname, '..', 'out', 'store-screenshots');
-const PAGE = 'store/screenshot-article.html';
-/** Scroll past the site's header so its logo isn't in the screenshots. */
-const SCROLL_Y = 80;
+/** Where the pointer waits while a picture is taken, in the bottom right corner. */
+const CORNER = { x: 1270, y: 790 };
+/**
+ * The region in the third picture covers the opening paragraphs: from just
+ * outside the first one's top left corner to just below the second one,
+ * stopping short of the figure beside them. In pixels.
+ */
+const REGION_MARGIN = { left: 14, top: 3, bottom: 8, beforeFigure: 21 };
 
-async function openPage(harness: Harness): Promise<Page> {
-  const page = await harness.open(PAGE);
-  await page.setViewport({ width: 1280, height: 800 });
-  await page.setRequestInterception(true);
-  page.on('request', (request) => {
-    const url = request.url();
-    if (url.startsWith(`${harness.origin}/`) || url.startsWith('data:')) {
-      void request.continue();
-    } else {
-      console.error(`Blocked a request to ${url}`);
-      process.exitCode = 1;
-      void request.abort();
-    }
-  });
-  await page.reload({ waitUntil: 'load' });
-  // No transitions, so each image is the same on every run.
-  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
-  await page.evaluate((scrollY) => {
-    window.scrollTo(0, scrollY);
-  }, SCROLL_Y);
-  await page.mouse.move(5, 5);
-  return page;
-}
+const openPage = (harness: Harness): Promise<Page> =>
+  openStorePage(harness, { reducedMotion: true });
 
 /** Move the pointer to each point in turn, so the overlay sees it settle. */
-async function hover(page: Page, points: [number, number][]) {
-  for (const [pointX, pointY] of points) {
-    await page.mouse.move(pointX, pointY, { steps: 3 });
+async function hover(page: Page, points: { x: number; y: number }[]) {
+  for (const { x, y } of points) {
+    await page.mouse.move(Math.round(x), Math.round(y), { steps: 3 });
     await sleep(300);
   }
 }
@@ -64,10 +58,12 @@ try {
   // 1. The highlight, moved up with Up Arrow from the image to its figure.
   let page = await openPage(harness);
   await harness.start(page);
+  const image = await boxOf(page, FIGURE_IMAGE);
+  const middle = { x: (image.left + image.right) / 2, y: (image.top + image.bottom) / 2 };
   await hover(page, [
-    [880, 230],
-    [885, 235],
-    [890, 240],
+    { x: middle.x - 5, y: middle.y - 5 },
+    middle,
+    { x: middle.x + 5, y: middle.y + 5 },
   ]);
   const highlighted = async () => (await harness.snapshot(page))?.hover?.label ?? '';
   let presses = 0;
@@ -89,12 +85,19 @@ try {
   // 3. A region dragged over the opening paragraphs.
   page = await openPage(harness);
   await harness.start(page);
-  await hover(page, [[250, 160]]);
+  const first = await boxOf(page, FIRST_PARAGRAPH);
+  const second = await boxOf(page, SECOND_PARAGRAPH);
+  const figure = await boxOf(page, FIGURE);
+  await hover(page, [{ x: first.left - REGION_MARGIN.left, y: first.top - REGION_MARGIN.top }]);
   await page.mouse.down();
-  await page.mouse.move(735, 395, { steps: 10 });
+  await page.mouse.move(
+    Math.round(figure.left - REGION_MARGIN.beforeFigure),
+    Math.round(second.bottom + REGION_MARGIN.bottom),
+    { steps: 10 },
+  );
   await page.mouse.up();
   await harness.waitForState(page, 'selected');
-  await page.mouse.move(1270, 790);
+  await page.mouse.move(CORNER.x, CORNER.y);
   await save(page, '3-region');
   await page.close();
 
@@ -103,7 +106,7 @@ try {
   await harness.start(page);
   await harness.clickPanel(page, 'visible');
   await harness.waitForState(page, 'preview', 60_000);
-  await page.mouse.move(1270, 790);
+  await page.mouse.move(CORNER.x, CORNER.y);
   await save(page, '4-preview');
   await page.close();
 } finally {
